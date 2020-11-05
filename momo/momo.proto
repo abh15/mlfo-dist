@@ -1,0 +1,36 @@
+syntax = "proto3";
+option go_package = "github.com/abh15/mlfo-dist/momo";
+
+package momo;
+
+service Orchestrate{
+    rpc Deploy (Pipeline) returns (Status);
+}
+
+message Pipeline {
+    repeated Source src= 1; 
+    Model model=2;
+    repeated Sink sink= 3; 
+}
+
+message Source {
+    string sourceID = 1;
+    map <string, string> requirements = 2;
+   // map <string, string> constraints = 3;
+}
+
+message Sink {
+    string sinkID = 1;
+    map <string, string> requirements = 2;
+   // map <string, string> constraints = 3;
+}
+
+message Model {
+    map <string, string> requirements = 1;
+    map <string, string> constraints = 2;
+    string modelID = 3;
+}
+
+message Status {
+ string status = 1;
+}

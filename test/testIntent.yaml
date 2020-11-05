@@ -1,0 +1,28 @@
+distIntent: yes
+sources:
+    src1:
+       id: oran1.cucp.dataset1
+       req:
+         iid: yes
+         private: yes
+        
+    src2:
+       id: oran2.cucp.dataset2
+       req:
+         iid: yes
+         private: yes
+models:
+   model: 
+    id : acumos.dnn.mymodel  
+    req:
+        access: public 
+        type: DNN 
+    constraints:
+        federated: yes
+        server: cloud.fed.server
+
+sinks:
+    sink1:
+       id: xapp.sink
+    sink2:
+       id: rapp.sink
