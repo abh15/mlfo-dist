@@ -3,12 +3,12 @@ sources:
   src1: 
     id: edge1
     req:
-      iid: yes
+      distribution: iid
       kind: user.latencyMeasurement
   src2:
     id: edge2
     req:
-      iid: yes
+      distribution: iid
       kind: user.latencyMeasurement
 
 models:
@@ -18,7 +18,6 @@ models:
       access: public 
       kind: dnn
       size: micro
-    constraints:
       federated: yes
       server: cloud.fed.server
 

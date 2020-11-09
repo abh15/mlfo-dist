@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"github.com/abh15/mlfo-dist/parser"
 
@@ -21,17 +20,12 @@ const (
 )
 
 func main() {
-	intent := parser.Parse(os.Args[1])
-	fmt.Printf("%+v\n", intent)
 
-	// if os.Args[1] == "client" {
-	// 	StartClient(os.Args[2])
-	// } else {
-	// 	StartServer()
-	// }
-	//==================================
-	// start := time.Now()
-
+	if os.Args[1] == "client" {
+		StartClient(os.Args[2])
+	} else {
+		StartServer()
+	}
 	// wg := new(sync.WaitGroup)
 	// wg.Add(1)
 
@@ -43,32 +37,6 @@ func main() {
 	// StartClient()
 
 	// wg.Wait()
-
-	// sources, models, sinks, isDist := parser.Parse(os.Args[1])
-	// fmt.Println(isDist)
-	// for _, src := range sources.(map[interface{}]interface{}) {
-	// 	//for every source in the sources list
-	// 	for k, v := range src.(map[interface{}]interface{}) {
-	// 		fmt.Printf("%v : ", k)
-	// 		fmt.Printf("%v\n\n", v)
-	// 	}
-	// }
-	// for _, model := range models.(map[interface{}]interface{}) {
-	// 	//for every model in models list
-	// 	for k, v := range model.(map[interface{}]interface{}) {
-	// 		fmt.Printf("%v : ", k)
-	// 		fmt.Printf("%v\n\n", v)
-	// 	}
-	// }
-	// for _, sink := range sinks.(map[interface{}]interface{}) {
-	// 	//for every sink in sinks list
-	// 	for k, v := range sink.(map[interface{}]interface{}) {
-	// 		fmt.Printf("%v : ", k)
-	// 		fmt.Printf("%v\n\n", v)
-	// 	}
-	// }
-	// duration := time.Since(start)
-	// fmt.Println(duration)
 
 }
 
@@ -105,49 +73,54 @@ func StartServer() {
 }
 
 //StartClient ist ein
-func StartClient(intent string) {
+func StartClient(intentpath string) {
 
-	//so, mo, si, _ := parser.Parse(intent)
+	intent := parser.Parse(intentpath)
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	c := pb.NewOrchestrateClient(conn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	m := make(map[string]string)
-
-	m["a"] = "A"
-	m["b"] = "B"
-
-	sources := []*pb.Source{
-		{SourceID: "cu-up", Requirements: m},
-		{SourceID: "du", Requirements: m},
-		{SourceID: "cu-cp", Requirements: m},
+	for k, v := range intent.Sources {
+		fmt.Printf("%+v\t", k)
+		fmt.Printf("%+v\n", v)
 	}
 
-	model := &pb.Model{
-		ModelID:      "mit.splitNN",
-		Constraints:  m,
-		Requirements: m,
-	}
+	// conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	// if err != nil {
+	// 	log.Fatalf("did not connect: %v", err)
+	// }
+	// defer conn.Close()
+	// c := pb.NewOrchestrateClient(conn)
 
-	sinks := []*pb.Sink{
-		{SinkID: "app1.sink"},
-		{SinkID: "app2.sink", Requirements: m},
-		{SinkID: "app3.sink", Requirements: m},
-	}
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// defer cancel()
 
-	finalmsg := &pb.Pipeline{Src: sources, Model: model, Sink: sinks}
+	// m := make(map[string]string)
 
-	r, err := c.Deploy(ctx, finalmsg)
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("Greeting: %s", r.GetStatus())
+	// m["a"] = "A"
+	// m["b"] = "B"
+
+	// sources := []*pb.Source{
+	// 	{SourceID: "cu-up", Requirements: m},
+	// 	{SourceID: "du", Requirements: m},
+	// 	{SourceID: "cu-cp", Requirements: m},
+	// }
+
+	// model := &pb.Model{
+	// 	ModelID:      "mit.splitNN",
+	// 	Constraints:  m,
+	// 	Requirements: m,
+	// }
+
+	// sinks := []*pb.Sink{
+	// 	{SinkID: "app1.sink"},
+	// 	{SinkID: "app2.sink", Requirements: m},
+	// 	{SinkID: "app3.sink", Requirements: m},
+	// }
+
+	// finalmsg := &pb.Pipeline{Src: sources, Model: model, Sink: sinks}
+
+	// r, err := c.Deploy(ctx, finalmsg)
+	// if err != nil {
+	// 	log.Fatalf("could not greet: %v", err)
+	// }
+	// log.Printf("Greeting: %s", r.GetStatus())
 
 }

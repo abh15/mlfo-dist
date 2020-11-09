@@ -7,6 +7,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+//Intent is Parent struct for input intent
 type Intent struct {
 	DistIntent bool
 	Sources    map[string]Specs
@@ -14,10 +15,17 @@ type Intent struct {
 	Sinks      map[string]Specs
 }
 
+//Specs gives specifications for every element of intent
 type Specs struct {
-	Id           string
-	Requirements map[string]string
-	Constraints  map[string]string
+	ID  string `yaml:"id"`
+	Req struct {
+		Access       string `yaml:"access"`
+		Server       string `yaml:"server"`
+		Size         string `yaml:"size"`
+		Federated    bool   `yaml:"federated"`
+		Distribution string `yaml:"distribution"`
+		Kind         string `yaml:"kind"`
+	}
 }
 
 //Parse parses the input yaml file
@@ -28,5 +36,6 @@ func Parse(filepath string) Intent {
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
+	//fmt.Printf("%+v\n", y)
 	return y
 }
