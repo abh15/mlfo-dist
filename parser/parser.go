@@ -2,38 +2,31 @@ package parser
 
 import (
 	"io/ioutil"
-	"reflect"
+	"log"
 
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Intent struct {
+	DistIntent bool
+	Sources    map[string]Specs
+	Models     map[string]Specs
+	Sinks      map[string]Specs
+}
+
+type Specs struct {
+	Id           string
+	Requirements map[string]string
+	Constraints  map[string]string
+}
+
 //Parse parses the input yaml file
-func Parse(filepath string) (interface{}, interface{}, interface{}, bool) {
-
-	var sources interface{}
-	var model interface{}
-	var sinks interface{}
-	var isDist bool
-
-	yamlMap := make(map[interface{}]interface{})
-	ymlContent, err := ioutil.ReadFile(filepath)
+func Parse(filepath string) Intent {
+	yamlfile, _ := ioutil.ReadFile(filepath)
+	y := Intent{}
+	err := yaml.Unmarshal([]byte(yamlfile), &y)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error: %v", err)
 	}
-	err = yaml.Unmarshal(ymlContent, &yamlMap)
-	for k, v := range yamlMap {
-		switch k {
-		case "distIntent":
-			mirror := reflect.ValueOf(v)
-			isDist = mirror.Interface().(bool)
-		case "sources":
-			sources = v
-		case "models":
-			model = v
-		case "sinks":
-			sinks = v
-		}
-	}
-
-	return sources, model, sinks, isDist
+	return y
 }

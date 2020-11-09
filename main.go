@@ -8,8 +8,9 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/abh15/mlfo-dist/momo"
 	"github.com/abh15/mlfo-dist/parser"
+
+	pb "github.com/abh15/mlfo-dist/momo"
 
 	"google.golang.org/grpc"
 )
@@ -20,38 +21,52 @@ const (
 )
 
 func main() {
+	intent := parser.Parse(os.Args[1])
+	fmt.Printf("%+v\n", intent)
+
+	// if os.Args[1] == "client" {
+	// 	StartClient(os.Args[2])
+	// } else {
+	// 	StartServer()
+	// }
+	//==================================
 	// start := time.Now()
 
-	// if os.Args[1] == "server" {
+	// wg := new(sync.WaitGroup)
+	// wg.Add(1)
+
+	// go func() {
 	// 	StartServer()
-	// } else if os.Args[1] == "client" {
-	// 	StartClient()
-	// } else {
-	// 	sources, models, sinks = parser.Parse(os.Args[1])
+	// 	wg.Done()
+	// }()
+
+	// StartClient()
+
+	// wg.Wait()
+
+	// sources, models, sinks, isDist := parser.Parse(os.Args[1])
+	// fmt.Println(isDist)
+	// for _, src := range sources.(map[interface{}]interface{}) {
+	// 	//for every source in the sources list
+	// 	for k, v := range src.(map[interface{}]interface{}) {
+	// 		fmt.Printf("%v : ", k)
+	// 		fmt.Printf("%v\n\n", v)
+	// 	}
 	// }
-	sources, models, sinks, isDist := parser.Parse(os.Args[1])
-	fmt.Println(isDist)
-	for _, src := range sources.(map[interface{}]interface{}) {
-		//for every source in the sources list
-		for k, v := range src.(map[interface{}]interface{}) {
-			fmt.Printf("%v : ", k)
-			fmt.Printf("%v\n\n", v)
-		}
-	}
-	for _, model := range models.(map[interface{}]interface{}) {
-		//for every model in models list
-		for k, v := range model.(map[interface{}]interface{}) {
-			fmt.Printf("%v : ", k)
-			fmt.Printf("%v\n\n", v)
-		}
-	}
-	for _, sink := range sinks.(map[interface{}]interface{}) {
-		//for every sink in sinks list
-		for k, v := range sink.(map[interface{}]interface{}) {
-			fmt.Printf("%v : ", k)
-			fmt.Printf("%v\n\n", v)
-		}
-	}
+	// for _, model := range models.(map[interface{}]interface{}) {
+	// 	//for every model in models list
+	// 	for k, v := range model.(map[interface{}]interface{}) {
+	// 		fmt.Printf("%v : ", k)
+	// 		fmt.Printf("%v\n\n", v)
+	// 	}
+	// }
+	// for _, sink := range sinks.(map[interface{}]interface{}) {
+	// 	//for every sink in sinks list
+	// 	for k, v := range sink.(map[interface{}]interface{}) {
+	// 		fmt.Printf("%v : ", k)
+	// 		fmt.Printf("%v\n\n", v)
+	// 	}
+	// }
 	// duration := time.Since(start)
 	// fmt.Println(duration)
 
@@ -90,7 +105,10 @@ func StartServer() {
 }
 
 //StartClient ist ein
-func StartClient() {
+func StartClient(intent string) {
+
+	//so, mo, si, _ := parser.Parse(intent)
+
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -107,7 +125,7 @@ func StartClient() {
 	m["b"] = "B"
 
 	sources := []*pb.Source{
-		{SourceID: "cu-up"},
+		{SourceID: "cu-up", Requirements: m},
 		{SourceID: "du", Requirements: m},
 		{SourceID: "cu-cp", Requirements: m},
 	}

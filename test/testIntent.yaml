@@ -1,28 +1,33 @@
 distIntent: yes
 sources:
-    src1:
-       id: oran1.cucp.dataset1
-       req:
-         iid: yes
-         private: yes
-        
-    src2:
-       id: oran2.cucp.dataset2
-       req:
-         iid: yes
-         private: yes
+  src1: 
+    id: edge1
+    req:
+      iid: yes
+      kind: user.latencyMeasurement
+  src2:
+    id: edge2
+    req:
+      iid: yes
+      kind: user.latencyMeasurement
+
 models:
    model: 
-    id : acumos.dnn.mymodel  
+    id : acumos.myrepo  
     req:
-        access: public 
-        type: DNN 
+      access: public 
+      kind: dnn
+      size: micro
     constraints:
-        federated: yes
-        server: cloud.fed.server
+      federated: yes
+      server: cloud.fed.server
 
 sinks:
-    sink1:
-       id: xapp.sink
-    sink2:
-       id: rapp.sink
+  sink1:
+    id: edge1
+    req:
+      kind: oran.latencyOptimiser
+  sink2:
+    id: edge2
+    req:
+      kind: oran.latencyOptimiser
