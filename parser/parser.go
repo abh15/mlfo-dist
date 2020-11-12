@@ -9,23 +9,36 @@ import (
 
 //Intent is Parent struct for input intent
 type Intent struct {
-	DistIntent bool
+	DistIntent bool   `yaml:"distIntent"`
+	Type       string `yaml:"type"`
+	Location   []Location
 	Sources    map[string]Specs
-	Models     map[string]Specs
+	Models     map[string]ModelSpecs
 	Sinks      map[string]Specs
 }
 
 //Specs gives specifications for every element of intent
 type Specs struct {
 	ID  string `yaml:"id"`
-	Req struct {
-		Access       string `yaml:"access"`
-		Server       string `yaml:"server"`
-		Size         string `yaml:"size"`
-		Federated    bool   `yaml:"federated"`
-		Distribution string `yaml:"distribution"`
-		Kind         string `yaml:"kind"`
-	}
+	Req Requirements
+}
+
+//ModelSpecs ...
+type ModelSpecs struct {
+	Req Requirements
+}
+
+//Requirements gives detailed reqs
+type Requirements struct {
+	Access       string `yaml:"access"`
+	Size         string `yaml:"size"`
+	Distribution string `yaml:"distribution"`
+	Kind         string `yaml:"kind"`
+}
+
+//Location ... is
+type Location struct {
+	Server string `yaml:"server"`
 }
 
 //Parse parses the input yaml file

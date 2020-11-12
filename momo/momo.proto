@@ -8,27 +8,32 @@ service Orchestrate{
 }
 
 message Pipeline {
-    repeated Source src= 1; 
+    Source src= 1; 
     Model model=2;
-    repeated Sink sink= 3; 
+    Sink sink= 3; 
+    Distributed dist = 4;
+}
+
+message Distributed {
+    string type = 1;
+    repeated string location = 2;
 }
 
 message Source {
-    string sourceID = 1;
+    string ID = 1;
     map <string, string> requirements = 2;
-   // map <string, string> constraints = 3;
+
 }
 
 message Sink {
-    string sinkID = 1;
+    string ID = 1;
     map <string, string> requirements = 2;
-   // map <string, string> constraints = 3;
+   
 }
 
 message Model {
     map <string, string> requirements = 1;
-    map <string, string> constraints = 2;
-    string modelID = 3;
+   
 }
 
 message Status {

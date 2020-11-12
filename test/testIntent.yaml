@@ -1,25 +1,26 @@
-distIntent: yes
+distIntent: true
+type: federated
+location: 
+- server: localhost:8001 #cloud.fed.server
+#------------------------------------------ 
 sources:
   src1: 
     id: edge1
     req:
       distribution: iid
-      kind: user.latencyMeasurement
+      kind: user.latencyMeasurement1
   src2:
-    id: edge2
+    id: localhost:8000
     req:
       distribution: iid
-      kind: user.latencyMeasurement
+      kind: user.latencyMeasurement2
 
 models:
-   model: 
-    id : acumos.myrepo  
+   model:  
     req:
       access: public 
       kind: dnn
       size: micro
-      federated: yes
-      server: cloud.fed.server
 
 sinks:
   sink1:
