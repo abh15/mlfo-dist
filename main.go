@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/abh15/mlfo-dist/parser"
@@ -22,21 +23,48 @@ const (
 	myhostname = "edge1"
 )
 
+//Segment gives src/sink/model for given segment
+type Segment struct {
+	source string
+	model  string
+	sink   string
+}
+
 var sourcesOut = make(map[string]*pb.Source)
 var sinksOut = make(map[string]*pb.Sink)
 
 func main() {
 	if os.Args[1] == "client" {
-		//StartClient()
 		intent := parser.Parse(os.Args[2])
-		srcMap, model, sinkMap := Federated(intent)
-		for k, v := range srcMap {
-			//send to k
-			finalmsg := &pb.Pipeline{Src: v, Model: model, Sink: sinkMap[k]}
-			status := Send(k, finalmsg)
-			fmt.Printf("Send to :\t %+v", k)
-			fmt.Printf("%+v", status)
+		segGraph := SplitNN(intent)
+		// fmt.Printf("%+v\n", segGraph)
+		for _, segment := range segGraph {
+			if segment.source == myhostname {
+				LocalDeploy()
+			} else {
+				finalmsg := &pb.Pipeline{Src: &pb.Source{ID: segment.source},
+					Model: &pb.Model{ID: segment.model},
+					Sink:  &pb.Sink{ID: segment.sink}}
+
+				status := Send(segment.source, finalmsg)
+				fmt.Printf("%+v", status)
+			}
+
 		}
+
+		// }
+		// finalmsg := &pb.Pipeline{Src: &pb.Source{ID:edgeGraph[i]},
+		// 							 Model: &pb.Model{},
+		// 							 Sink: &pb.Sink{}}
+
+		// srcMap, model, sinkMap := Federated(intent)
+		// for k, v := range srcMap {
+		// 	//send to k
+		// 	finalmsg := &pb.Pipeline{Src: v, Model: model, Sink: sinkMap[k]}
+		// 	status := Send(k, finalmsg)
+		// 	fmt.Printf("Send to :\t %+v", k)
+		// 	fmt.Printf("%+v", status)
+		//}
 	} else {
 		StartServer(os.Args[1])
 	}
@@ -109,42 +137,7 @@ func ReqStrucToMap(s parser.Requirements) map[string]string {
 	return m
 }
 
-//Federated handles federated meta-intents
-func Federated(in parser.Intent) (map[string]*pb.Source, *pb.Model, map[string]*pb.Sink) {
-	//Step1: create protobuf msgs for all remote edge nodes and deploy local pipeline.
-	//In IF case we prepare protobuf for all edges, while in ELSE we prepare protobuf for Fed server
-	for _, v := range in.Sources {
-		if v.ID != myhostname {
-			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
-			src := &pb.Source{Requirements: reqmap}
-			sourcesOut[v.ID] = src
-		} else {
-			fedsrc := &pb.Source{ID: myhostname}
-			sourcesOut[in.Location[0].Server] = fedsrc
-			//
-			LocalDeploy()
-		}
-	}
-	for _, v := range in.Sinks {
-		if v.ID != myhostname {
-			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
-			snk := &pb.Sink{Requirements: reqmap}
-			sinksOut[v.ID] = snk
-		} else {
-			fedsink := &pb.Sink{ID: myhostname}
-			sinksOut[in.Location[0].Server] = fedsink
-			//
-			LocalDeploy()
-		}
-	}
-
-	mdlmap := DelEmptyValues(ReqStrucToMap(in.Models["model"].Req))
-	mdl := &pb.Model{Requirements: mdlmap}
-	return sourcesOut, mdl, sinksOut
-
-}
-
-//Send ...
+//Send sends msg over grpc
 func Send(address string, message *pb.Pipeline) string {
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
@@ -195,5 +188,89 @@ func Send(address string, message *pb.Pipeline) string {
 	// } else {
 	// 	LocalDeploy()
 	// }
+
+}
+
+//Federated handles federated dist. intents
+func Federated(in parser.Intent) (map[string]*pb.Source, *pb.Model, map[string]*pb.Sink) {
+	//Step1: create protobuf msgs for all remote edge nodes and deploy local pipeline.
+	//In IF case we prepare protobuf for all edges, while in ELSE we prepare protobuf for Fed server
+	for _, v := range in.Sources {
+		if v.ID != myhostname {
+			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
+			src := &pb.Source{Requirements: reqmap}
+			sourcesOut[v.ID] = src
+		} else {
+			fedsrc := &pb.Source{ID: myhostname}
+			sourcesOut[in.Location[0].Server] = fedsrc
+			//
+			LocalDeploy()
+		}
+	}
+	for _, v := range in.Sinks {
+		if v.ID != myhostname {
+			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
+			snk := &pb.Sink{Requirements: reqmap}
+			sinksOut[v.ID] = snk
+		} else {
+			fedsink := &pb.Sink{ID: myhostname}
+			sinksOut[in.Location[0].Server] = fedsink
+			//
+			LocalDeploy()
+		}
+	}
+
+	mdlmap := DelEmptyValues(ReqStrucToMap(in.Models["model"].Req))
+	mdl := &pb.Model{Requirements: mdlmap}
+	return sourcesOut, mdl, sinksOut
+
+}
+
+//GetsplitModelSegments describes logic of which node will host which model segment
+func GetsplitModelSegments(seglist []Segment) []Segment {
+
+	sg := []Segment{}
+	for n, s := range seglist {
+
+		s.model = "model.segement." + strconv.Itoa(n)
+
+		sg = append(sg, s)
+
+	}
+
+	return sg
+}
+
+//SplitNN handles splitNN dist. intents
+func SplitNN(in parser.Intent) []Segment {
+
+	seglist := []Segment{}
+
+	for i := 0; i < len(in.Location); i++ {
+		seg := Segment{}
+
+		if i == 0 {
+			for _, v := range in.Sources {
+				seg.source = v.ID
+				seg.sink = in.Location[i].Server
+				seglist = append(seglist, seg)
+			}
+
+		}
+		if len(in.Location) != (i + 1) {
+			seg.source = in.Location[i].Server
+			seg.sink = in.Location[i+1].Server
+		}
+		if i == (len(in.Location) - 1) {
+			for _, v := range in.Sinks {
+				seg.source = in.Location[i].Server
+				seg.sink = v.ID
+			}
+		}
+
+		seglist = append(seglist, seg)
+	}
+
+	return GetsplitModelSegments(seglist)
 
 }

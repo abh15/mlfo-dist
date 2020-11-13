@@ -1,0 +1,26 @@
+distIntent: true
+type: splitNN
+location: 
+- server: localhost:8001 #cloud.fed.server
+- server: localhost:8002
+- server: localhost:8003
+#------------------------------------------ 
+sources:
+  src1: 
+    id: edge1
+    req:
+      distribution: iid
+      kind: user.latencyMeasurement1
+
+models:
+   model:  
+    req:
+      access: private 
+      kind: dnn
+      size: large
+
+sinks:
+  sink1:
+    id: edge1
+    req:
+      kind: oran.latencyOptimiser

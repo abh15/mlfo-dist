@@ -25,6 +25,7 @@ type Specs struct {
 
 //ModelSpecs ...
 type ModelSpecs struct {
+	ID string `yaml:"id"`
 	Req Requirements
 }
 
