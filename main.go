@@ -138,30 +138,6 @@ func Send(address string, message *pb.Pipeline) string {
 	}
 	return r.GetStatus()
 
-	// log.Printf("Greeting: %s", r.GetStatus())
-	// m := make(map[string]string)
-
-	// m["a"] = "A"
-	// m["b"] = "B"
-
-	// sources := []*pb.Source{
-	// 	{SourceID: "cu-up", Requirements: m},
-	// 	{SourceID: "du", Requirements: m},
-	// 	{SourceID: "cu-cp", Requirements: m},
-	// }
-
-	// model := &pb.Model{
-	// 	ModelID:      "mit.splitNN",
-	// 	Constraints:  m,
-	// 	Requirements: m,
-	// }
-
-	// sinks := []*pb.Sink{
-	// 	{SinkID: "app1.sink"},
-	// 	{SinkID: "app2.sink", Requirements: m},
-	// 	{SinkID: "app3.sink", Requirements: m},
-	// }
-
 }
 
 // Federated handles federated dist. intents
