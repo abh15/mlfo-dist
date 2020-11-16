@@ -11,21 +11,27 @@ import (
 type Intent struct {
 	DistIntent bool   `yaml:"distIntent"`
 	Type       string `yaml:"type"`
-	Location   []Location
-	Sources    map[string]Specs
-	Models     map[string]ModelSpecs
-	Sinks      map[string]Specs
+	Servers    []Server
+	Sources    []Source
+	Models     []Model
+	Sinks      []Sink
 }
 
-//Specs gives specifications for every element of intent
-type Specs struct {
+//Source gives specifications for every element of intent
+type Source struct {
 	ID  string `yaml:"id"`
 	Req Requirements
 }
 
-//ModelSpecs ...
-type ModelSpecs struct {
-	ID string `yaml:"id"`
+//Sink ...
+type Sink struct {
+	ID  string `yaml:"id"`
+	Req Requirements
+}
+
+//Model ...
+type Model struct {
+	ID  string `yaml:"id"`
 	Req Requirements
 }
 
@@ -37,8 +43,8 @@ type Requirements struct {
 	Kind         string `yaml:"kind"`
 }
 
-//Location ... is
-type Location struct {
+//Server ... is
+type Server struct {
 	Server string `yaml:"server"`
 }
 

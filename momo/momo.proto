@@ -1,4 +1,12 @@
 syntax = "proto3";
+// import "options/annotations.proto";
+// option (transformer.go_repo_package) = "parser";
+
+// option (transformer.go_protobuf_package) = "momo";
+
+// option (transformer.go_models_file_path) = "parser/parser.go";
+
+
 option go_package = "github.com/abh15/mlfo-dist/momo";
 
 package momo;
@@ -8,33 +16,39 @@ service Orchestrate{
 }
 
 message Pipeline {
-    Source src= 1; 
-    Model model= 2;
-    Sink sink= 3; 
-    Distributed dist = 4;
+    bool distIntent = 1;
+    string type = 2;
+    repeated Server servers = 3;
+    repeated Source sources = 4; 
+    repeated Model models = 5;
+    repeated Sink sinks = 6; 
+   
 }
 
-message Distributed {
-    string type = 1;
-    repeated string location = 2;
+message Server{
+    string server = 1;
 }
 
 message Source {
     string ID = 1;
-    map <string, string> requirements = 2;
-
+    Requirements req = 2;
 }
 
 message Sink {
     string ID = 1;
-    map <string, string> requirements = 2;
-   
+    Requirements req = 2; 
 }
 
 message Model {
     string ID = 1 ;
-    map <string, string> requirements = 2;
-   
+    Requirements req = 2;
+}
+
+message Requirements{
+    string access = 1;
+    string size = 2;
+    string distribution = 3;
+    string kind = 4;
 }
 
 message Status {

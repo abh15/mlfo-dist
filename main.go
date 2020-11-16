@@ -3,84 +3,56 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"strconv"
+	"sync"
 	"time"
 
-	"github.com/abh15/mlfo-dist/parser"
-
 	pb "github.com/abh15/mlfo-dist/momo"
-
+	"github.com/abh15/mlfo-dist/parser"
 	"google.golang.org/grpc"
 )
 
-const (
-	port = ":8000"
-	//address    = "localhost:8000"
-	myhostname = "edge1"
-)
-
-//Segment gives src/sink/model for given segment
-type Segment struct {
-	source string
-	model  string
-	sink   string
-}
-
-var sourcesOut = make(map[string]*pb.Source)
-var sinksOut = make(map[string]*pb.Sink)
+var myhostname string
 
 func main() {
-	if os.Args[1] == "client" {
-		intent := parser.Parse(os.Args[2])
-		segGraph := SplitNN(intent)
-		// fmt.Printf("%+v\n", segGraph)
-		for _, segment := range segGraph {
-			if segment.source == myhostname {
-				LocalDeploy()
-			} else {
-				finalmsg := &pb.Pipeline{Src: &pb.Source{ID: segment.source},
-					Model: &pb.Model{ID: segment.model},
-					Sink:  &pb.Sink{ID: segment.sink}}
 
-				status := Send(segment.source, finalmsg)
-				fmt.Printf("%+v", status)
+	// Usage: go run main.go -s=<serverip:serverport> -i=<intent>
+	serveraddr := flag.String("s", "localhost:7999", "MLFO server will run on this addr:port default is localhost:7999")
+	yamlpath := flag.String("i", "", "Intent YAML file full path")
+	hostname := flag.String("h", "edge1", "Hostname of this node")
+	flag.Parse()
+
+	myhostname = *hostname
+	//Start server in different thread
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		StartServer(*serveraddr)
+		wg.Done()
+	}()
+
+	//parse intent and call respective function
+	if *yamlpath != "" {
+		intent := parser.Parse(*yamlpath)
+		if intent.DistIntent {
+			switch intent.Type {
+			case "splitNN":
+				SplitNN(intent)
+			case "federated":
+				Federated(intent)
+			default:
+				fmt.Println("Distributed type in intent not supported")
 			}
-
+		} else {
+			LocalDeploy(intent)
 		}
-
-		// }
-		// finalmsg := &pb.Pipeline{Src: &pb.Source{ID:edgeGraph[i]},
-		// 							 Model: &pb.Model{},
-		// 							 Sink: &pb.Sink{}}
-
-		// srcMap, model, sinkMap := Federated(intent)
-		// for k, v := range srcMap {
-		// 	//send to k
-		// 	finalmsg := &pb.Pipeline{Src: v, Model: model, Sink: sinkMap[k]}
-		// 	status := Send(k, finalmsg)
-		// 	fmt.Printf("Send to :\t %+v", k)
-		// 	fmt.Printf("%+v", status)
-		//}
-	} else {
-		StartServer(os.Args[1])
 	}
 
-	// wg := new(sync.WaitGroup)
-	// wg.Add(1)
-
-	// go func() {
-	// 	StartServer()
-	// 	wg.Done()
-	// }()
-
-	// StartClient()
-
-	// wg.Wait()
-
+	wg.Wait()
 }
 
 // server is used to implement helloworld.GreeterServer.
@@ -90,21 +62,36 @@ type server struct {
 
 // part of server
 func (s *server) Deploy(ctx context.Context, mintent *pb.Pipeline) (*pb.Status, error) {
-	msg := mintent.GetModel()
 
-	fmt.Println(msg)
+	var intent parser.Intent
+	bytes, _ := json.Marshal(mintent)
+	json.Unmarshal(bytes, &intent)
 
-	// log.Printf("Received: %v", msg)
-	// fmt.Println(mintent.GetModel())
+	//fmt.Printf("%+v\n", intent)
+
+	if intent.DistIntent {
+		switch intent.Type {
+		case "splitNN":
+			SplitNN(intent)
+		case "federated":
+			Federated(intent)
+		default:
+			fmt.Println("Distributed type in intent not supported")
+		}
+	} else {
+		LocalDeploy(intent)
+	}
 
 	return &pb.Status{Status: "deployed successfully"}, nil
 }
 
 //StartServer ...
-func StartServer(portt string) {
-	lis, err := net.Listen("tcp", portt)
+func StartServer(port string) {
+	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
+	} else {
+		fmt.Printf("\nStarted listening on %v\n\n", port)
 	}
 	s := grpc.NewServer()
 	pb.RegisterOrchestrateServer(s, &server{})
@@ -113,28 +100,24 @@ func StartServer(portt string) {
 	}
 }
 
-//Split handles SPlitNN
-func Split() {}
-
 //LocalDeploy handles Local pipeline deployment
-func LocalDeploy() {}
-
-//DelEmptyValues deletes empty values (and their keys) from map
-func DelEmptyValues(inputmap map[string]string) map[string]string {
-	for k, v := range inputmap {
-		if v == "" {
-			delete(inputmap, k)
-		}
-	}
-	return inputmap
+func LocalDeploy(local parser.Intent) {
+	fmt.Printf("\n%+v\n", local)
+	fmt.Println("\nLocalDeployed")
 }
 
-//ReqStrucToMap takes in struc and converts to map of string:string
-func ReqStrucToMap(s parser.Requirements) map[string]string {
-	m := make(map[string]string)
-	j, _ := json.Marshal(s)
-	json.Unmarshal(j, &m)
-	return m
+//GetModelSegments describes logic of which node will host which model segment
+func GetModelSegments(num int, node0 string, nodes []parser.Server) ([]string, []string) {
+	var segments = make([]string, num+1)
+	var locations = make([]string, num+1)
+
+	segments[0] = "model.segment.0"
+	locations[0] = node0
+	for i := 1; i < num+1; i++ {
+		locations[i] = nodes[i-1].Server
+		segments[i] = "model.segment." + strconv.Itoa(i)
+	}
+	return segments, locations
 }
 
 //Send sends msg over grpc
@@ -155,7 +138,7 @@ func Send(address string, message *pb.Pipeline) string {
 	}
 	return r.GetStatus()
 
-	//log.Printf("Greeting: %s", r.GetStatus())
+	// log.Printf("Greeting: %s", r.GetStatus())
 	// m := make(map[string]string)
 
 	// m["a"] = "A"
@@ -178,99 +161,73 @@ func Send(address string, message *pb.Pipeline) string {
 	// 	{SinkID: "app2.sink", Requirements: m},
 	// 	{SinkID: "app3.sink", Requirements: m},
 	// }
-	// if intent.DistIntent {
-	// 	switch intent.Type {
-	// 	case "federated":
-	// 		Federated(intent)
-	// 	case "splitNN":
-	// 		Split()
-	// 	}
-	// } else {
-	// 	LocalDeploy()
-	// }
 
 }
 
-//Federated handles federated dist. intents
-func Federated(in parser.Intent) (map[string]*pb.Source, *pb.Model, map[string]*pb.Sink) {
-	//Step1: create protobuf msgs for all remote edge nodes and deploy local pipeline.
-	//In IF case we prepare protobuf for all edges, while in ELSE we prepare protobuf for Fed server
-	for _, v := range in.Sources {
-		if v.ID != myhostname {
-			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
-			src := &pb.Source{Requirements: reqmap}
-			sourcesOut[v.ID] = src
+// Federated handles federated dist. intents
+func Federated(in parser.Intent) {
+	var mo *pb.Model
+	var pipelet = make(map[string]*pb.Pipeline)
+	mobytes, _ := json.Marshal(in.Models[0]) //assuming single fed model for all nodes
+	json.Unmarshal(mobytes, &mo)
+	serv := in.Servers[0].Server //assuming single fed serer
+	//create pipeline for other edges
+	for i := 0; i < len(in.Sources); i++ {
+		if in.Sources[i].ID == myhostname {
+			LocalIntent := parser.Intent{}
+			LocalIntent.Sources = []parser.Source{in.Sources[i]}
+			LocalIntent.Sinks = []parser.Sink{in.Sinks[i]}
+			LocalIntent.Models = []parser.Model{in.Models[0]}
+			LocalDeploy(LocalIntent)
 		} else {
-			fedsrc := &pb.Source{ID: myhostname}
-			sourcesOut[in.Location[0].Server] = fedsrc
-			//
-			LocalDeploy()
+			var so *pb.Source
+			var si *pb.Sink
+			sobytes, _ := json.Marshal(in.Sources[i])
+			json.Unmarshal(sobytes, &so)
+			sibytes, _ := json.Marshal(in.Sinks[i])
+			json.Unmarshal(sibytes, &si)
+			//construct momo msg for other edges
+			pipelet[in.Sources[i].ID] = &pb.Pipeline{DistIntent: true, Type: "federated",
+				Servers: []*pb.Server{{Server: serv}}, Sources: []*pb.Source{so},
+				Models: []*pb.Model{mo}, Sinks: []*pb.Sink{si}}
 		}
 	}
-	for _, v := range in.Sinks {
-		if v.ID != myhostname {
-			reqmap := DelEmptyValues(ReqStrucToMap(v.Req))
-			snk := &pb.Sink{Requirements: reqmap}
-			sinksOut[v.ID] = snk
-		} else {
-			fedsink := &pb.Sink{ID: myhostname}
-			sinksOut[in.Location[0].Server] = fedsink
-			//
-			LocalDeploy()
-		}
+	//create  pipeline for federated server
+	pipelet[serv] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: myhostname}},
+		Models: []*pb.Model{mo}, Sinks: []*pb.Sink{{ID: myhostname}}}
+	//send to target
+	for k, v := range pipelet {
+		status := Send(k, v)
+		fmt.Println(status)
 	}
-
-	mdlmap := DelEmptyValues(ReqStrucToMap(in.Models["model"].Req))
-	mdl := &pb.Model{Requirements: mdlmap}
-	return sourcesOut, mdl, sinksOut
-
-}
-
-//GetsplitModelSegments describes logic of which node will host which model segment
-func GetsplitModelSegments(seglist []Segment) []Segment {
-
-	sg := []Segment{}
-	for n, s := range seglist {
-
-		s.model = "model.segement." + strconv.Itoa(n)
-
-		sg = append(sg, s)
-
-	}
-
-	return sg
 }
 
 //SplitNN handles splitNN dist. intents
-func SplitNN(in parser.Intent) []Segment {
+func SplitNN(in parser.Intent) {
+	var pipelet = make(map[string]*pb.Pipeline)
+	LocalIntent := parser.Intent{}
+	//Get model segments and their locations
+	segments, locations := GetModelSegments(len(in.Servers), in.Sources[0].ID, in.Servers)
+	//Deploy local intent
+	LocalIntent.Sources = []parser.Source{parser.Source{ID: locations[0]}}
+	LocalIntent.Models = []parser.Model{parser.Model{ID: segments[0]}}
+	LocalIntent.Sinks = []parser.Sink{parser.Sink{ID: locations[1]}}
+	LocalDeploy(LocalIntent)
 
-	seglist := []Segment{}
-
-	for i := 0; i < len(in.Location); i++ {
-		seg := Segment{}
-
-		if i == 0 {
-			for _, v := range in.Sources {
-				seg.source = v.ID
-				seg.sink = in.Location[i].Server
-				seglist = append(seglist, seg)
-			}
-
+	//Prepate pipelet msgs
+	for i := 1; i < len(segments); i++ {
+		//for the last segment sink should be origin(thishost)
+		if i == len(segments)-1 {
+			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
+				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[0]}}}
+		} else {
+			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
+				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[i+1]}}}
 		}
-		if len(in.Location) != (i + 1) {
-			seg.source = in.Location[i].Server
-			seg.sink = in.Location[i+1].Server
-		}
-		if i == (len(in.Location) - 1) {
-			for _, v := range in.Sinks {
-				seg.source = in.Location[i].Server
-				seg.sink = v.ID
-			}
-		}
-
-		seglist = append(seglist, seg)
 	}
-
-	return GetsplitModelSegments(seglist)
-
+	//Send the pipelet msgs
+	for k, v := range pipelet {
+		status := Send(k, v)
+		fmt.Printf("%+v", status)
+	}
 }

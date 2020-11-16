@@ -1,3 +1,8 @@
 - Support for multiple sources per node in Fed learn
 - Seperate protobuf msg for requirements
 - Implement localpipeline
+
+var p *pb.Pipeline
+j, _ := json.Marshal(in)
+json.Unmarshal(j, &p)
+fmt.Printf("%+v\n", p)

@@ -1,33 +1,30 @@
 distIntent: true
 type: federated
-location: 
-- server: localhost:8001 #cloud.fed.server
-#------------------------------------------ 
+
+servers:
+  - server: localhost:8001 
+
 sources:
-  src1: 
-    id: edge1
+  - id: edge1
     req:
       distribution: iid
       kind: user.latencyMeasurement1
-  src2:
-    id: localhost:8000
+  - id: localhost:8000
     req:
       distribution: iid
       kind: user.latencyMeasurement2
 
 models:
-   model:  
+  - id: 
     req:
       access: public 
       kind: dnn
       size: micro
 
 sinks:
-  sink1:
-    id: edge1
+  - id: edge1
     req:
       kind: oran.latencyOptimiser
-  sink2:
-    id: edge2
+  - id: localhost:8000
     req:
       kind: oran.latencyOptimiser
