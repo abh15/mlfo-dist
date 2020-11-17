@@ -21,7 +21,7 @@ var myhostname string
 func main() {
 
 	// Usage: go run main.go -s=<serverip:serverport> -i=<intent>
-	serveraddr := flag.String("s", "localhost:7999", "MLFO server will run on this addr:port default is localhost:7999")
+	serveraddr := flag.String("s", "localhost:8000", "MLFO server will run on this addr:port default is localhost:8000")
 	yamlpath := flag.String("i", "", "Intent YAML file full path")
 	hostname := flag.String("h", "edge1", "Hostname of this node")
 	flag.Parse()
