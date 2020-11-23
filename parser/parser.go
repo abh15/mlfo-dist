@@ -37,10 +37,11 @@ type Model struct {
 
 //Requirements gives detailed reqs
 type Requirements struct {
-	Access       string `yaml:"access"`
+	Accuracy     string `yaml:"accuracy"`
 	Size         string `yaml:"size"`
 	Distribution string `yaml:"distribution"`
 	Kind         string `yaml:"kind"`
+	Num          int32    `yaml:"num"`
 }
 
 //Server ... is

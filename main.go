@@ -13,6 +13,7 @@ import (
 
 	pb "github.com/abh15/mlfo-dist/momo"
 	"github.com/abh15/mlfo-dist/parser"
+	"github.com/abh15/mlfo-dist/sbi"
 	"google.golang.org/grpc"
 )
 
@@ -60,14 +61,14 @@ type server struct {
 	pb.UnimplementedOrchestrateServer
 }
 
-// part of server
+//Deploy is called when a message is received on server side
 func (s *server) Deploy(ctx context.Context, mintent *pb.Pipeline) (*pb.Status, error) {
 
+	// fmt.Printf("%+v\n", mintent)
 	var intent parser.Intent
 	bytes, _ := json.Marshal(mintent)
 	json.Unmarshal(bytes, &intent)
-
-	//fmt.Printf("%+v\n", intent)
+	status := "Received distributed pipeline"
 
 	if intent.DistIntent {
 		switch intent.Type {
@@ -79,13 +80,13 @@ func (s *server) Deploy(ctx context.Context, mintent *pb.Pipeline) (*pb.Status, 
 			fmt.Println("Distributed type in intent not supported")
 		}
 	} else {
-		LocalDeploy(intent)
+		status = LocalDeploy(intent)
 	}
-
-	return &pb.Status{Status: "deployed successfully"}, nil
+	//========================intelligently return server status===================
+	return &pb.Status{Status: status}, nil
 }
 
-//StartServer ...
+//StartServer starts MLFO grpc server
 func StartServer(port string) {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
@@ -101,23 +102,28 @@ func StartServer(port string) {
 }
 
 //LocalDeploy handles Local pipeline deployment
-func LocalDeploy(local parser.Intent) {
+func LocalDeploy(local parser.Intent) string {
 	fmt.Printf("\n%+v\n", local)
-	fmt.Println("\nLocalDeployed")
-}
+	fmt.Println("\nExecuting local")
+	var localOutcome string
 
-//GetModelSegments describes logic of which node will host which model segment
-func GetModelSegments(num int, node0 string, nodes []parser.Server) ([]string, []string) {
-	var segments = make([]string, num+1)
-	var locations = make([]string, num+1)
+	if local.Type == "federated" {
+		if local.Models[0].ID == "FedAvg" {
+			localOutcome = sbi.StartFedServer()
 
-	segments[0] = "model.segment.0"
-	locations[0] = node0
-	for i := 1; i < num+1; i++ {
-		locations[i] = nodes[i-1].Server
-		segments[i] = "model.segment." + strconv.Itoa(i)
+		} else {
+			//start fed client local pipeline
+			localsrc := sbi.ResolveRequirements("source", local.Sources[0].Req)
+			localmodel := sbi.ResolveRequirements("model", local.Models[0].Req)
+			localsink := sbi.ResolveRequirements("sink", local.Sinks[0].Req)
+			numClients := local.Sources[0].Req.Num
+			fedIP := local.Servers[0].Server
+			sbi.StartFedClients(localsrc, localmodel, localsink, fedIP, numClients)
+			localOutcome = "Started local clients"
+		}
 	}
-	return segments, locations
+
+	return localOutcome
 }
 
 //Send sends msg over grpc
@@ -147,14 +153,16 @@ func Federated(in parser.Intent) {
 	mobytes, _ := json.Marshal(in.Models[0]) //assuming single fed model for all nodes
 	json.Unmarshal(mobytes, &mo)
 	serv := in.Servers[0].Server //assuming single fed serer
-	//create pipeline for other edges
+	LocalIntent := parser.Intent{}
+
 	for i := 0; i < len(in.Sources); i++ {
+		//create Local fed pipeline
 		if in.Sources[i].ID == myhostname {
-			LocalIntent := parser.Intent{}
+			LocalIntent.Type = "federated"
 			LocalIntent.Sources = []parser.Source{in.Sources[i]}
 			LocalIntent.Sinks = []parser.Sink{in.Sinks[i]}
 			LocalIntent.Models = []parser.Model{in.Models[0]}
-			LocalDeploy(LocalIntent)
+			//create pipeline for other edges
 		} else {
 			var so *pb.Source
 			var si *pb.Sink
@@ -168,14 +176,44 @@ func Federated(in parser.Intent) {
 				Models: []*pb.Model{mo}, Sinks: []*pb.Sink{si}}
 		}
 	}
+
 	//create  pipeline for federated server
-	pipelet[serv] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: myhostname}},
-		Models: []*pb.Model{mo}, Sinks: []*pb.Sink{{ID: myhostname}}}
-	//send to target
+	pipelet[serv] = &pb.Pipeline{DistIntent: false, Type: "federated", Sources: []*pb.Source{{ID: myhostname}},
+		Models: []*pb.Model{{ID: "FedAvg"}}, Sinks: []*pb.Sink{{ID: myhostname}}}
+
+	status := Send(serv, pipelet[serv])
+
+	fmt.Println(status)
+	LocalIntent.Servers = []parser.Server{parser.Server{status}}
+	LocalDeploy(LocalIntent)
+
+	/* //send to target
 	for k, v := range pipelet {
+		fmt.Printf("%+v\n", k)
+		fmt.Printf("%+v\n", v)
 		status := Send(k, v)
+		if k == serv {
+			LocalIntent.Servers = []parser.Server{parser.Server{status}}
+			LocalDeploy(LocalIntent)
+		}
+		fmt.Println("This is the status")
 		fmt.Println(status)
+	} */
+
+}
+
+//GetModelSegments describes logic of which node will host which model segment
+func GetModelSegments(num int, node0 string, nodes []parser.Server) ([]string, []string) {
+	var segments = make([]string, num+1)
+	var locations = make([]string, num+1)
+
+	segments[0] = "model.segment.0"
+	locations[0] = node0
+	for i := 1; i < num+1; i++ {
+		locations[i] = nodes[i-1].Server
+		segments[i] = "model.segment." + strconv.Itoa(i)
 	}
+	return segments, locations
 }
 
 //SplitNN handles splitNN dist. intents
@@ -201,7 +239,8 @@ func SplitNN(in parser.Intent) {
 				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[i+1]}}}
 		}
 	}
-	//Send the pipelet msgs
+	// This CANNOT be used for testing
+	//Send the pipelet msgs =================(assuming all other MLFOs are running)===================
 	for k, v := range pipelet {
 		status := Send(k, v)
 		fmt.Printf("%+v", status)

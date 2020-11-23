@@ -8,23 +8,27 @@ sources:
   - id: edge1
     req:
       distribution: iid
-      kind: user.latencyMeasurement1
+      kind: robot.images
+      num: 3
   - id: localhost:8000
     req:
       distribution: iid
       kind: user.latencyMeasurement2
+      num : 3
 
 models:
   - id: 
     req:
-      access: public 
-      kind: dnn
+      accuracy: high 
+      kind: classifier
       size: micro
 
 sinks:
   - id: edge1
     req:
-      kind: oran.latencyOptimiser
+      kind: robot.armOptimiser
+      num: 3
   - id: localhost:8000
     req:
-      kind: oran.latencyOptimiser
+      kind: robot.armOptimiser
+      num: 3

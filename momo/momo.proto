@@ -45,10 +45,11 @@ message Model {
 }
 
 message Requirements{
-    string access = 1;
+    string accuracy = 1;
     string size = 2;
     string distribution = 3;
     string kind = 4;
+    int32 num = 5;
 }
 
 message Status {
