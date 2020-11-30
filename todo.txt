@@ -2,3 +2,5 @@ add error handling for -
 valid yaml
 marshal/unmarshal
 grpc connection to non-existing mlfos
+
+Use logging instead of println

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"sync"
 	"time"
 
@@ -109,7 +108,8 @@ func LocalDeploy(local parser.Intent) string {
 
 	if local.Type == "federated" {
 		if local.Models[0].ID == "FedAvg" {
-			localOutcome = sbi.StartFedServer()
+			_ = sbi.StartFedServer()
+			localOutcome = "localhost:8080"
 
 		} else {
 			//start fed client local pipeline
@@ -202,7 +202,7 @@ func Federated(in parser.Intent) {
 
 }
 
-//GetModelSegments describes logic of which node will host which model segment
+/* //GetModelSegments describes logic of which node will host which model segment
 func GetModelSegments(num int, node0 string, nodes []parser.Server) ([]string, []string) {
 	var segments = make([]string, num+1)
 	var locations = make([]string, num+1)
@@ -214,35 +214,36 @@ func GetModelSegments(num int, node0 string, nodes []parser.Server) ([]string, [
 		segments[i] = "model.segment." + strconv.Itoa(i)
 	}
 	return segments, locations
-}
+} */
 
 //SplitNN handles splitNN dist. intents
 func SplitNN(in parser.Intent) {
-	var pipelet = make(map[string]*pb.Pipeline)
-	LocalIntent := parser.Intent{}
-	//Get model segments and their locations
-	segments, locations := GetModelSegments(len(in.Servers), in.Sources[0].ID, in.Servers)
-	//Deploy local intent
-	LocalIntent.Sources = []parser.Source{parser.Source{ID: locations[0]}}
-	LocalIntent.Models = []parser.Model{parser.Model{ID: segments[0]}}
-	LocalIntent.Sinks = []parser.Sink{parser.Sink{ID: locations[1]}}
-	LocalDeploy(LocalIntent)
+	_ = in
+	/* 	var pipelet = make(map[string]*pb.Pipeline)
+	   	LocalIntent := parser.Intent{}
+	   	//Get model segments and their locations
+	   	segments, locations := GetModelSegments(len(in.Servers), in.Sources[0].ID, in.Servers)
+	   	//Deploy local intent
+	   	LocalIntent.Sources = []parser.Source{parser.Source{ID: locations[0]}}
+	   	LocalIntent.Models = []parser.Model{parser.Model{ID: segments[0]}}
+	   	LocalIntent.Sinks = []parser.Sink{parser.Sink{ID: locations[1]}}
+	   	LocalDeploy(LocalIntent)
 
-	//Prepate pipelet msgs
-	for i := 1; i < len(segments); i++ {
-		//for the last segment sink should be origin(thishost)
-		if i == len(segments)-1 {
-			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
-				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[0]}}}
-		} else {
-			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
-				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[i+1]}}}
-		}
-	}
-	// This CANNOT be used for testing
-	//Send the pipelet msgs =================(assuming all other MLFOs are running)===================
-	for k, v := range pipelet {
-		status := Send(k, v)
-		fmt.Printf("%+v", status)
-	}
+	   	//Prepate pipelet msgs
+	   	for i := 1; i < len(segments); i++ {
+	   		//for the last segment sink should be origin(thishost)
+	   		if i == len(segments)-1 {
+	   			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
+	   				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[0]}}}
+	   		} else {
+	   			pipelet[in.Servers[i-1].Server] = &pb.Pipeline{DistIntent: false, Sources: []*pb.Source{{ID: locations[i]}},
+	   				Models: []*pb.Model{{ID: segments[i]}}, Sinks: []*pb.Sink{{ID: locations[i+1]}}}
+	   		}
+	   	}
+	   	// This CANNOT be used for testing
+	   	//Send the pipelet msgs =================(assuming all other MLFOs are running)===================
+	   	for k, v := range pipelet {
+	   		status := Send(k, v)
+	   		fmt.Printf("%+v", status)
+	   	} */
 }

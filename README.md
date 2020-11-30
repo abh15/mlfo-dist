@@ -19,3 +19,5 @@ Distributed version of MLFO based on ITU Y.3172 standard
 python3 /Users/ab/mlfo-dist/underlay/factory/client.py --server=localhost:8080 --source=MNIST --model=keras --sink=robot.controller &
 
 python3 /Users/ab/mlfo-dist/underlay/factory/server.py --server_address=localhost:8080 &
+
+http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one
