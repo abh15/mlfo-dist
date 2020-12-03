@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"io/ioutil"
 	"log"
 
 	yaml "gopkg.in/yaml.v2"
@@ -41,7 +40,7 @@ type Requirements struct {
 	Size         string `yaml:"size"`
 	Distribution string `yaml:"distribution"`
 	Kind         string `yaml:"kind"`
-	Num          int32    `yaml:"num"`
+	Num          int32  `yaml:"num"`
 }
 
 //Server ... is
@@ -50,8 +49,8 @@ type Server struct {
 }
 
 //Parse parses the input yaml file
-func Parse(filepath string) Intent {
-	yamlfile, _ := ioutil.ReadFile(filepath)
+func Parse(yamlfile []byte) Intent {
+	//	yamlfile, _ := ioutil.ReadFile(filepath)
 	y := Intent{}
 	err := yaml.Unmarshal([]byte(yamlfile), &y)
 	if err != nil {

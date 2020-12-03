@@ -14,10 +14,23 @@ Distributed version of MLFO based on ITU Y.3172 standard
 
 `go run main.go -h=localhost:8000 -i=/Users/ab/mlfo-dist/test/fedIntent.yaml`
 
+### Build docker
+`docker build . -f docker/Dockerfile -t mlfo:latest`
 
+### Load intent in MLFO
+`curl -v -F file=@fedIntent.yaml http://localhost:8000/receive`
 
-python3 /Users/ab/mlfo-dist/underlay/factory/client.py --server=localhost:8080 --source=MNIST --model=keras --sink=robot.controller &
+### Enable creation of resources on kube cluster
+`kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
 
-python3 /Users/ab/mlfo-dist/underlay/factory/server.py --server_address=localhost:8080 &
 
 http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one
+
+
+kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default
+
+Flower: 5000 —> REST
+	    6000 —> FLWRSERVER
+
+MLFO: 8000 —> REST
+	  9000 —> MLFO SERVER
