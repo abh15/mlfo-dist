@@ -16,25 +16,25 @@ type Intent struct {
 	Sinks      []Sink
 }
 
-//Source gives specifications for every element of intent
+//Source specifies source requirements and/or ID
 type Source struct {
 	ID  string `yaml:"id"`
 	Req Requirements
 }
 
-//Sink ...
+//Sink specifies source requirements and/or ID
 type Sink struct {
 	ID  string `yaml:"id"`
 	Req Requirements
 }
 
-//Model ...
+//Model specifies source requirements and/or ID
 type Model struct {
 	ID  string `yaml:"id"`
 	Req Requirements
 }
 
-//Requirements gives detailed reqs
+//Requirements gives detailed reqs for pipeline nodes
 type Requirements struct {
 	Accuracy     string `yaml:"accuracy"`
 	Size         string `yaml:"size"`
@@ -43,12 +43,12 @@ type Requirements struct {
 	Num          int32  `yaml:"num"`
 }
 
-//Server ... is
+//Server specifies server/CloudMLFO IP
 type Server struct {
 	Server string `yaml:"server"`
 }
 
-//Parse parses the input yaml file
+//Parse parses the input yaml file into the Intent{} struct
 func Parse(yamlfile []byte) Intent {
 	//	yamlfile, _ := ioutil.ReadFile(filepath)
 	y := Intent{}

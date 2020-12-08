@@ -1,8 +1,4 @@
 add error handling for - 
-valid yaml
-marshal/unmarshal
 grpc connection to non-existing mlfos
 
-Use logging instead of println
-
-wait flwr server till max num of cli is reached
+SBI functions should return errors

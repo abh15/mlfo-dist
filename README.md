@@ -24,7 +24,7 @@ Distributed version of MLFO based on ITU Y.3172 standard
 `kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
 
 
-http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one
+http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one&num=2
 
 
 kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default
@@ -34,3 +34,8 @@ Flower: 5000 —> REST
 
 MLFO: 8000 —> REST
 	  9000 —> MLFO SERVER
+
+
+curl -X POST -F 'maxcli=2' http://fedserv:5000/launch
+
+curl -X POST -F 'server=localhost:8080' -F 'source=oran' -F 'model=MNIST' -F 'sink=robot' -F 'num=2' http://fedserv:5000/start
