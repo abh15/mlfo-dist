@@ -2,19 +2,19 @@ distIntent: true
 type: federated
 
 servers:
-  - server: localhost:8001 
+  - server: mlfo-2 
 
 sources:
-  - id: edge1
+  - id: mlfo-0
     req:
       distribution: iid
       kind: robot.images
-      num: 3
-  - id: localhost:8000
+      num: 2
+  - id: mlfo-1
     req:
       distribution: iid
       kind: user.latencyMeasurement2
-      num : 3
+      num : 2
 
 models:
   - id: 
@@ -24,11 +24,11 @@ models:
       size: micro
 
 sinks:
-  - id: edge1
+  - id: mlfo-0
     req:
       kind: robot.armOptimiser
-      num: 3
-  - id: localhost:8000
+      num: 2
+  - id: mlfo-1
     req:
       kind: robot.armOptimiser
-      num: 3
+      num: 2

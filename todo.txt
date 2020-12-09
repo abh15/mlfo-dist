@@ -2,3 +2,5 @@ add error handling for -
 grpc connection to non-existing mlfos
 
 SBI functions should return errors
+
+fix maxcli naming in *both* flower and mlfo

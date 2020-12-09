@@ -24,8 +24,8 @@ RUN apk add ca-certificates
 COPY --from=build_base /tmp/mlfo/out/mlfo /app/mlfo
 
 # This container exposes port 8080 to the outside world
-EXPOSE 8000
-EXPOSE 9000
+# EXPOSE 8000
+# EXPOSE 9000
 
 # Run the binary program produced by `go install`
 CMD ["/app/mlfo"]

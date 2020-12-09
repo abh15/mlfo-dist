@@ -19,13 +19,17 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	mlfoport = ":9000"
+)
+
 func main() {
 
 	//Start grpc server for momo on port 9000 in different thread
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	go func() {
-		StartServer(":9000")
+		StartServer(mlfoport)
 		wg.Done()
 	}()
 
@@ -81,14 +85,14 @@ type server struct {
 
 //Deploy is called when a message is received on MLFO server
 func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Pipeline) (*pb.Status, error) {
-
+	log.Println(rcvdIntent)
 	var intent parser.Intent
-	bytes, err := json.Marshal(rcvdIntent)
+	intentbytes, err := json.Marshal(rcvdIntent)
 	if err != nil {
 		log.Println(err.Error())
 	}
-	json.Unmarshal(bytes, &intent)
-	status := ""
+	json.Unmarshal(intentbytes, &intent)
+	status := "emptystatus"
 
 	if intent.DistIntent {
 		//If intent is distributed handle it using Distributed()
@@ -110,7 +114,7 @@ func StartServer(port string) {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	} else {
-		log.Printf("\nStarted listening on %v\n\n", port)
+		log.Printf("\nStarted listening on %v\n", port)
 	}
 	s := grpc.NewServer()
 	pb.RegisterOrchestrateServer(s, &server{})
@@ -143,19 +147,19 @@ func LocalDeploy(intent parser.Intent) string {
 			//StartFedServer starts a new fed server and return serviceIP for the server
 			return sbi.StartFedServer(intent.Models[0].Req.Kind, intent.Sources[0].Req.Kind, intent.Sources[0].Req.Num)
 
-		} else {
-			/* Local pipelet is on edge node. Resolve requirements and deploy fed clients according to intent and
-			IP received from server
-			*/
-			localsrc := sbi.ResolveRequirements("source", intent.Sources[0].Req)
-			localmodel := sbi.ResolveRequirements("model", intent.Models[0].Req)
-			localsink := sbi.ResolveRequirements("sink", intent.Sinks[0].Req)
-			numClients := intent.Sources[0].Req.Num
-			fedIP := intent.Servers[0].Server
-			sbi.StartFedClients(localsrc, localmodel, localsink, fedIP, numClients)
-			log.Printf("%v number of federated clients deployed", numClients)
-			return "Fed clients deployed"
 		}
+		/* Local pipelet is on edge node. Resolve requirements and deploy fed clients according to intent and
+		IP received from server
+		*/
+		localsrc := sbi.ResolveRequirements("source", intent.Sources[0].Req)
+		localmodel := sbi.ResolveRequirements("model", intent.Models[0].Req)
+		localsink := sbi.ResolveRequirements("sink", intent.Sinks[0].Req)
+		numClients := intent.Sources[0].Req.Num
+		fedIP := intent.Servers[0].Server
+		sbi.StartFedClients(localsrc, localmodel, localsink, fedIP, numClients)
+		log.Printf("%v number of federated clients deployed", numClients)
+		return "Fed clients deployed"
+
 	}
 	//DeployType2Pipelet()
 	return "Deployed type 2 pipelet"
@@ -164,6 +168,7 @@ func LocalDeploy(intent parser.Intent) string {
 
 //Send sends msg over grpc
 func Send(address string, message *pb.Pipeline) string {
+	log.Printf("Connecting to %v ......", address)
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -171,7 +176,7 @@ func Send(address string, message *pb.Pipeline) string {
 	defer conn.Close()
 	c := pb.NewOrchestrateClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	r, err := c.Deploy(ctx, message)
@@ -208,7 +213,7 @@ func Distributed(in parser.Intent) {
 	if err != nil {
 		log.Println(err.Error())
 	}
-	cloudMlfoIP := in.Servers[0].Server //IP of the single fed serer
+	cloudMlfoIP := in.Servers[0].Server + mlfoport //IP of the single fed serer
 	LocalPipelet := parser.Intent{}
 
 	/* We decompose the intent in various steps:
@@ -243,8 +248,8 @@ func Distributed(in parser.Intent) {
 				log.Println(err.Error())
 			}
 			json.Unmarshal(sinkBytes, &sink)
-			pipelet[in.Sources[i].ID] = &pb.Pipeline{DistIntent: true, Type: "federated",
-				Servers: []*pb.Server{{Server: cloudMlfoIP}}, Sources: []*pb.Source{source},
+			pipelet[in.Sources[i].ID+mlfoport] = &pb.Pipeline{DistIntent: true, Type: "federated",
+				Servers: []*pb.Server{{Server: in.Servers[0].Server}}, Sources: []*pb.Source{source},
 				Models: []*pb.Model{model}, Sinks: []*pb.Sink{sink}}
 			log.Println("Pipelet Created")
 		}
@@ -261,6 +266,7 @@ func Distributed(in parser.Intent) {
 		Sources:    []*pb.Source{{ID: myhostname, Req: srcreq}},
 		Models:     []*pb.Model{{ID: "FedAvg", Req: modelreq}},
 		Sinks:      []*pb.Sink{{ID: myhostname}}}
+	log.Println("Fed piplet Created")
 
 	//Step 4: Send piplet struct to cloudMLFO
 	status := Send(cloudMlfoIP, fedservpipelet)

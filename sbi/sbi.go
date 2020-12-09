@@ -2,12 +2,15 @@ package sbi
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/abh15/mlfo-dist/parser"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,6 +23,13 @@ import (
 
 //int32Ptr is helper function from kubernetes client-go library
 func int32Ptr(i int32) *int32 { return &i }
+
+//md5hash gives first 5 bytes of md5 hash of a string. Returns normal ascii string
+func md5hash(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil)[:5])
+}
 
 //ResolveRequirements talks with the underlay to match requirements with available resource
 func ResolveRequirements(s string, r parser.Requirements) string {
@@ -52,7 +62,7 @@ func StartFedClients(localsrc string, localmodel string, localsink string, fedIP
 	if err != nil {
 		log.Println(err.Error())
 	}
-	underlayaddr := "edgeunderlay" + strings.Split(myhostname, "-")[1]
+	underlayaddr := "edgeunderlay-" + strings.Split(myhostname, "-")[1]
 	resp, err := http.PostForm("http://"+underlayaddr+":5000/startcli", data)
 	if err != nil {
 		log.Println(err.Error())
@@ -76,7 +86,7 @@ func StartFedServer(model string, source string, minclients int32) string {
 	}
 
 	// create new string to use as pod name
-	name := "fedserv" + model + source
+	name := "fedserv-" + md5hash(model+source)
 
 	// create Deployment
 	deploymentsClient := clientset.AppsV1().Deployments(apiv1.NamespaceDefault)
@@ -84,6 +94,10 @@ func StartFedServer(model string, source string, minclients int32) string {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				"modelkind":  model,
+				"sourcekind": source,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: int32Ptr(1),
@@ -105,8 +119,8 @@ func StartFedServer(model string, source string, minclients int32) string {
 					Containers: []apiv1.Container{
 						{
 							Name:    name,
-							Image:   "abh15/flwr:0.93",
-							Command: []string{"python", "-m", "flwr_example.factory.flask-REST"},
+							Image:   "abh15/flwr:latest",
+							Command: []string{"python", "-m", "flwr_example.factory.flask"},
 							Ports: []apiv1.ContainerPort{
 								{ContainerPort: 5000},
 								{ContainerPort: 6000},
@@ -118,9 +132,12 @@ func StartFedServer(model string, source string, minclients int32) string {
 		},
 	}
 	// Start Deployment
-	fmt.Println("Creating deployment...")
-	result, _ := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
-	log.Printf("Created deployment %q.\n", result.GetObjectMeta().GetName())
+	log.Println("Creating deployment...")
+	depresult, err := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Printf("Created deployment %q.\n", depresult.GetObjectMeta().GetName())
 
 	// Start service
 	serviceClient := clientset.CoreV1().Services(apiv1.NamespaceDefault)
@@ -134,9 +151,13 @@ func StartFedServer(model string, source string, minclients int32) string {
 			},
 		},
 		Spec: apiv1.ServiceSpec{
+			Selector: map[string]string{
+				"modelkind":  model,
+				"sourcekind": source,
+			},
 			Ports: []apiv1.ServicePort{
 				{
-					Name: "REST",
+					Name: "rest",
 					Port: 5000,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
@@ -144,7 +165,7 @@ func StartFedServer(model string, source string, minclients int32) string {
 					},
 				},
 				{
-					Name: "Flower",
+					Name: "flower",
 					Port: 6000,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
@@ -156,8 +177,32 @@ func StartFedServer(model string, source string, minclients int32) string {
 	}
 
 	// Deploy service
-	result2, _ := serviceClient.Create(context.TODO(), service, metav1.CreateOptions{})
-	log.Printf("Created deployment %q.\n", result2.GetObjectMeta().GetName())
+	log.Println("Creating service...")
+	svcresult, err := serviceClient.Create(context.TODO(), service, metav1.CreateOptions{})
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Printf("Created service %q.\n", svcresult.GetObjectMeta().GetName())
+
+	// Check if pod is up before initilising
+	reqlabel := "modelkind=" + model + ",sourcekind=" + source
+	watch, err := clientset.CoreV1().Pods("").Watch(context.TODO(), metav1.ListOptions{LabelSelector: reqlabel})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	for event := range watch.ResultChan() {
+		//fmt.Printf("Type: %v\n", event.Type)
+		p, ok := event.Object.(*apiv1.Pod)
+		if !ok {
+			log.Fatal("unexpected type")
+		}
+		if p.Status.Phase == "Running" {
+			log.Printf("Fed server %v is up", name)
+			break
+		}
+	}
+	//Wait for flask to come up
+	time.Sleep(15 * time.Second)
 
 	//Initialse server with min number of clients required to start sampling
 	data := url.Values{"maxcli": {fmt.Sprint(minclients)}}

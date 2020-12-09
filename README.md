@@ -18,7 +18,7 @@ Distributed version of MLFO based on ITU Y.3172 standard
 `docker build . -f docker/Dockerfile -t mlfo:latest`
 
 ### Load intent in MLFO
-`curl -v -F file=@fedIntent.yaml http://localhost:8000/receive`
+`curl -v -F file=@fedIntent.yaml 'http://localhost:8000/receive'`
 
 ### Enable creation of resources on kube cluster
 `kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
@@ -26,6 +26,7 @@ Distributed version of MLFO based on ITU Y.3172 standard
 
 http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one&num=2
 
+kubectl port-forward mlfo-0-575d8b9c96-fxfdh 8000:8000 
 
 kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default
 
@@ -36,6 +37,6 @@ MLFO: 8000 —> REST
 	  9000 —> MLFO SERVER
 
 
-curl -X POST -F 'maxcli=2' http://fedserv:5000/launch
+curl -X POST -F 'maxcli=2' http://fedserv:5000/launchserv
 
 curl -X POST -F 'server=localhost:8080' -F 'source=oran' -F 'model=MNIST' -F 'sink=robot' -F 'num=2' http://fedserv:5000/start
