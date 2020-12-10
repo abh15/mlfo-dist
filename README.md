@@ -20,7 +20,7 @@ go v1.14
 
 2. `kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
 
-3. `helm install edge helmchart/fedml` `helm delete edge`
+3. `helm install edge helmchart/fedml` 
 
 4. `kubectl port-forward <mlfo-0 pod name> 8000:8000`
 
@@ -28,11 +28,16 @@ go v1.14
 
 6. `cd intents; curl -v -F file=@fedIntent.yaml 'http://localhost:8000/receive'`
 
+7. TBD: add script to remove all fedserv pod/svc/deployments
 
 
 
 
 ## Misc commands
+
+### Delete helm chart
+
+`helm delete edge`
 
 ### Compile protoc
 
