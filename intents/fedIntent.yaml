@@ -8,19 +8,19 @@ sources:
   - id: mlfo-0
     req:
       distribution: iid
-      kind: robot.images
-      num: 2
+      kind: IID
+      num: 1
   - id: mlfo-1
     req:
       distribution: iid
-      kind: user.latencyMeasurement2
-      num : 2
+      kind: IID
+      num : 1
 
 models:
   - id: 
     req:
       accuracy: high 
-      kind: classifier
+      kind: RNN
       size: micro
 
 sinks:

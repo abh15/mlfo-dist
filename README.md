@@ -23,9 +23,6 @@ Distributed version of MLFO based on ITU Y.3172 standard
 ### Enable creation of resources on kube cluster
 `kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
 
-
-http://localhost:5000/start?server=localhost:8080&source=oran.du&model=MNIST&sink=robot.one&num=2
-
 kubectl port-forward mlfo-0-575d8b9c96-fxfdh 8000:8000 
 
 kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default
@@ -39,4 +36,4 @@ MLFO: 8000 —> REST
 
 curl -X POST -F 'maxcli=2' http://fedserv:5000/launchserv
 
-curl -X POST -F 'server=localhost:8080' -F 'source=oran' -F 'model=MNIST' -F 'sink=robot' -F 'num=2' http://fedserv:5000/start
+curl -X POST -F 'server=fedserv-6a3f7aee6b:6000' -F 'source=oran' -F 'model=MNIST' -F 'sink=robot' -F 'num=2' http://localhost:5000/startcli

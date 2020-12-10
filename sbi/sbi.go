@@ -49,6 +49,8 @@ func ResolveRequirements(s string, r parser.Requirements) string {
 //StartFedClients starts fed clients using flwr
 func StartFedClients(localsrc string, localmodel string, localsink string, fedIP string, numClients int32) {
 
+	//simulate orchestration delay i.e model selection + fetch  etc.
+	time.Sleep(3 * time.Second)
 	log.Println("Starting federated clients")
 
 	data := url.Values{
@@ -75,6 +77,7 @@ func StartFedClients(localsrc string, localmodel string, localsink string, fedIP
 //StartFedServer starts a new flwr server and returns the server IP
 func StartFedServer(model string, source string, minclients int32) string {
 	// creates the in-cluster config
+	mincli := fmt.Sprint(minclients)
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -120,7 +123,7 @@ func StartFedServer(model string, source string, minclients int32) string {
 						{
 							Name:    name,
 							Image:   "abh15/flwr:latest",
-							Command: []string{"python", "-m", "flwr_example.factory.flask"},
+							Command: []string{"python", "-m", "flwr_example.factory.server", "--mincli", mincli},
 							Ports: []apiv1.ContainerPort{
 								{ContainerPort: 5000},
 								{ContainerPort: 6000},
@@ -201,17 +204,19 @@ func StartFedServer(model string, source string, minclients int32) string {
 			break
 		}
 	}
-	//Wait for flask to come up
-	time.Sleep(15 * time.Second)
+	log.Printf("Fed server requires minimum %v clients", minclients)
 
-	//Initialse server with min number of clients required to start sampling
-	data := url.Values{"maxcli": {fmt.Sprint(minclients)}}
-	resp, err := http.PostForm("http://"+name+":5000/launchserv", data)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	resp.Body.Close()
-	log.Println("Server initialised")
+	/* 	//Wait for flask to come up
+	   	time.Sleep(15 * time.Second)
+
+	   	//Initialse server with min number of clients required to start sampling
+	   	data := url.Values{"maxcli": {fmt.Sprint(minclients)}}
+	   	resp, err := http.PostForm("http://"+name+":5000/launchserv", data)
+	   	if err != nil {
+	   		log.Println(err.Error())
+	   	}
+	   	resp.Body.Close()
+	   	log.Println("Server initialised") */
 
 	return name
 }
@@ -228,18 +233,17 @@ func MatchServer(model string, source string) (bool, string) {
 	if err != nil {
 		panic(err.Error())
 	}
-	// get pods with required labels
+	// get svc with required labels and return svcname
 	reqlabel := "modelkind=" + model + ",sourcekind=" + source
-	pods, _ := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: reqlabel})
+
+	svcs, err := clientset.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: reqlabel})
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	log.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
-	if len(pods.Items) != 0 {
+	if len(svcs.Items) != 0 {
 		var svcname string
-		for _, v := range pods.Items {
-			svcname = strings.Split(v.GetName(), "-")[0]
+		for _, v := range svcs.Items {
+			svcname = v.GetName()
 		}
 		return true, svcname
 	}

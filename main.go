@@ -96,13 +96,15 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Pipeline) (*pb.Statu
 
 	if intent.DistIntent {
 		//If intent is distributed handle it using Distributed()
+		log.Println("Received distributed intent")
 		Distributed(intent)
-		status = "Received distributed intent"
-		log.Println("Received Distributed intent on MLFO server")
+		status = "ok"
+		log.Println("Distributed intent processed succesfully")
 	} else {
 		//If intent is not distributed, deploy it locally using LocalDeploy()
+		log.Println("Received Local intent")
 		status = LocalDeploy(intent)
-		log.Println("Received Local intent on MLFO server")
+		log.Println("Local intent processed succesfully")
 	}
 	//return status to client over mo-mo. This may also contain FedIP of created Fed Server
 	return &pb.Status{Status: status}, nil
@@ -142,6 +144,7 @@ func LocalDeploy(intent parser.Intent) string {
 			//match for model, src type
 			isPresent, serverIP := sbi.MatchServer(intent.Models[0].Req.Kind, intent.Sources[0].Req.Kind)
 			if isPresent {
+				log.Printf("Received server IP %v for pre-existing fed server", serverIP)
 				return serverIP
 			}
 			//StartFedServer starts a new fed server and return serviceIP for the server
@@ -279,6 +282,7 @@ func Distributed(in parser.Intent) {
 	LocalDeploy(LocalPipelet)
 
 	//Step 5: Send pipelet structs over Mo-Mo(gRPC) to other edge MLFOs
+	log.Printf("Sending pipelet structs to other edges")
 	for k, v := range pipelet {
 		status := Send(k, v)
 		if status == "" {
