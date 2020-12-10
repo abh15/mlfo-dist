@@ -1,0 +1,5 @@
+numEdges: 3
+numMLFO: 3
+replicaCount: 1
+imagePullPolicy: IfNotPresent
+nodeSelector: {}
