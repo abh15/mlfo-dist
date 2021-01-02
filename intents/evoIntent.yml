@@ -1,0 +1,8 @@
+type: evolution 
+target:
+    - id: nestedIntent
+      operation: optimise
+      operand: compute
+      constraints:
+        maxnGPU: x
+        maxnmemory: y 

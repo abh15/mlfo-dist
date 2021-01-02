@@ -1,0 +1,9 @@
+type: operation 
+subtype: optimise
+target:
+    - id: factory-001
+      operation: maintain
+      operand: QoS
+      constraints:
+        k: v
+
