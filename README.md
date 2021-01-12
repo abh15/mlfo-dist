@@ -1,44 +1,25 @@
 # mlfo-dist
 Distributed version of MLFO based on ITU Y.3172 standard 
 ## Requirements 
-Kubernetes v1.19.4
-
-Docker v19.03.13
-
-Minikube v1.15.1
-
-kubectl v1.19.4
-
-helm v3.4.1
+Containernet v3.1
 
 go v1.14
 
 [abh15/flower](https://github.com/abh15/flower)
 
 ## Usage
-1. Clone this repo
+1. Clone this repo (intentdriven branch)
 
-2. `kubectl create clusterrolebinding default-edit --clusterrole=edit --serviceaccount=default:default`
+2. Copy the mininet/topologie.py to containernet/examples directory
 
-3. `helm install edge helmchart/fedml` 
+3. `sudo python3 examples/my_script.py` 
 
-4. `kubectl port-forward <mlfo-0 pod name> 8000:8000`
+4. `sudo docker exec -it mn.<nodename> /app/mlfo`
 
-5. `kubectl logs -f <pods to monitor>`
-
-6. `cd intents; curl -v -F file=@fedIntent.yaml 'http://localhost:8000/receive'`
-
-7. TBD: add script to remove all fedserv pod/svc/deployments
-
-
+5. From another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
 
 
 ## Misc commands
-
-### Delete helm chart
-
-`helm delete edge`
-
 ### Compile protoc
 
 `protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative momo/momo.proto`
@@ -46,10 +27,6 @@ go v1.14
 ### Build docker and push
 `bash docker/build.sh`
 
-### http test commands
-`curl -X POST -F 'maxcli=2' http://fedserv:5000/launchserv`
-
-`curl -X POST -F 'server=fedserv-6a3f7aee6b:6000' -F 'source=oran' -F 'model=MNIST' -F 'sink=robot' -F 'num=2' http://localhost:5000/startcli`
 
 
 ### Port mapping
