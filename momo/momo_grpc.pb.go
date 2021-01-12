@@ -17,7 +17,7 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrchestrateClient interface {
-	Deploy(ctx context.Context, in *Pipeline, opts ...grpc.CallOption) (*Status, error)
+	Deploy(ctx context.Context, in *Intent, opts ...grpc.CallOption) (*Status, error)
 }
 
 type orchestrateClient struct {
@@ -28,7 +28,7 @@ func NewOrchestrateClient(cc grpc.ClientConnInterface) OrchestrateClient {
 	return &orchestrateClient{cc}
 }
 
-func (c *orchestrateClient) Deploy(ctx context.Context, in *Pipeline, opts ...grpc.CallOption) (*Status, error) {
+func (c *orchestrateClient) Deploy(ctx context.Context, in *Intent, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
 	err := c.cc.Invoke(ctx, "/momo.Orchestrate/Deploy", in, out, opts...)
 	if err != nil {
@@ -41,7 +41,7 @@ func (c *orchestrateClient) Deploy(ctx context.Context, in *Pipeline, opts ...gr
 // All implementations must embed UnimplementedOrchestrateServer
 // for forward compatibility
 type OrchestrateServer interface {
-	Deploy(context.Context, *Pipeline) (*Status, error)
+	Deploy(context.Context, *Intent) (*Status, error)
 	mustEmbedUnimplementedOrchestrateServer()
 }
 
@@ -49,7 +49,7 @@ type OrchestrateServer interface {
 type UnimplementedOrchestrateServer struct {
 }
 
-func (*UnimplementedOrchestrateServer) Deploy(context.Context, *Pipeline) (*Status, error) {
+func (*UnimplementedOrchestrateServer) Deploy(context.Context, *Intent) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Deploy not implemented")
 }
 func (*UnimplementedOrchestrateServer) mustEmbedUnimplementedOrchestrateServer() {}
@@ -59,7 +59,7 @@ func RegisterOrchestrateServer(s *grpc.Server, srv OrchestrateServer) {
 }
 
 func _Orchestrate_Deploy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Pipeline)
+	in := new(Intent)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func _Orchestrate_Deploy_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/momo.Orchestrate/Deploy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrchestrateServer).Deploy(ctx, req.(*Pipeline))
+		return srv.(OrchestrateServer).Deploy(ctx, req.(*Intent))
 	}
 	return interceptor(ctx, in, info, handler)
 }

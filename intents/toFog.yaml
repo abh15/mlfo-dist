@@ -1,0 +1,18 @@
+intentID: fogintent01    #unique ID for every intent
+targets:
+    - id: fog-node-001
+      operation: aggregate
+      operand: model.federated
+      constraints:
+        modelkind: classifier.randomForest
+        sourcekind: asset1.image.rgb
+    
+    - id: fog-node-001
+      operation: aggregate.global
+      operand: model.federated
+      constraints:
+        modelkind: classifier.randomForest
+        sourcekind: asset1.image.rgb
+        minaccuracy: 90        # Determines min accuracy to perform global aggregation
+
+

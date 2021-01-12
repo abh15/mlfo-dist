@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abh15/mlfo-dist/parser"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +30,7 @@ func md5hash(s string) string {
 	return hex.EncodeToString(h.Sum(nil)[:5])
 }
 
-//ResolveRequirements talks with the underlay to match requirements with available resource
+/* //ResolveRequirements talks with the underlay to match requirements with available resource
 func ResolveRequirements(s string, r parser.Requirements) string {
 	var resourceID string
 	_ = r //should use this intelligently
@@ -45,6 +44,7 @@ func ResolveRequirements(s string, r parser.Requirements) string {
 	}
 	return resourceID
 }
+*/
 
 //StartFedClients starts fed clients using flwr
 func StartFedClients(localsrc string, localmodel string, localsink string, fedIP string, numClients int32) {
@@ -249,3 +249,13 @@ func MatchServer(model string, source string) (bool, string) {
 	}
 	return false, ""
 }
+
+// //GetAssetMetadata fetches metadata from
+// func GetAssetMetadata() {
+// 	return "", ""
+// }
+
+// //GetComputeProfile fetches
+// func GetComputeProfile() {
+
+// }

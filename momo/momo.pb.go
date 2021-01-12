@@ -7,12 +7,11 @@
 package momo
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -26,21 +25,17 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-type Pipeline struct {
+type Intent struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	DistIntent bool      `protobuf:"varint,1,opt,name=distIntent,proto3" json:"distIntent,omitempty"`
-	Type       string    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Servers    []*Server `protobuf:"bytes,3,rep,name=servers,proto3" json:"servers,omitempty"`
-	Sources    []*Source `protobuf:"bytes,4,rep,name=sources,proto3" json:"sources,omitempty"`
-	Models     []*Model  `protobuf:"bytes,5,rep,name=models,proto3" json:"models,omitempty"`
-	Sinks      []*Sink   `protobuf:"bytes,6,rep,name=sinks,proto3" json:"sinks,omitempty"`
+	IntentID string    `protobuf:"bytes,1,opt,name=intentID,proto3" json:"intentID,omitempty"`
+	Targets  []*Target `protobuf:"bytes,2,rep,name=Targets,proto3" json:"Targets,omitempty"`
 }
 
-func (x *Pipeline) Reset() {
-	*x = Pipeline{}
+func (x *Intent) Reset() {
+	*x = Intent{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_momo_momo_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -48,13 +43,13 @@ func (x *Pipeline) Reset() {
 	}
 }
 
-func (x *Pipeline) String() string {
+func (x *Intent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Pipeline) ProtoMessage() {}
+func (*Intent) ProtoMessage() {}
 
-func (x *Pipeline) ProtoReflect() protoreflect.Message {
+func (x *Intent) ProtoReflect() protoreflect.Message {
 	mi := &file_momo_momo_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -66,63 +61,38 @@ func (x *Pipeline) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Pipeline.ProtoReflect.Descriptor instead.
-func (*Pipeline) Descriptor() ([]byte, []int) {
+// Deprecated: Use Intent.ProtoReflect.Descriptor instead.
+func (*Intent) Descriptor() ([]byte, []int) {
 	return file_momo_momo_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Pipeline) GetDistIntent() bool {
+func (x *Intent) GetIntentID() string {
 	if x != nil {
-		return x.DistIntent
-	}
-	return false
-}
-
-func (x *Pipeline) GetType() string {
-	if x != nil {
-		return x.Type
+		return x.IntentID
 	}
 	return ""
 }
 
-func (x *Pipeline) GetServers() []*Server {
+func (x *Intent) GetTargets() []*Target {
 	if x != nil {
-		return x.Servers
+		return x.Targets
 	}
 	return nil
 }
 
-func (x *Pipeline) GetSources() []*Source {
-	if x != nil {
-		return x.Sources
-	}
-	return nil
-}
-
-func (x *Pipeline) GetModels() []*Model {
-	if x != nil {
-		return x.Models
-	}
-	return nil
-}
-
-func (x *Pipeline) GetSinks() []*Sink {
-	if x != nil {
-		return x.Sinks
-	}
-	return nil
-}
-
-type Server struct {
+type Target struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Server string `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	ID          string       `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	Operation   string       `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	Operand     string       `protobuf:"bytes,3,opt,name=operand,proto3" json:"operand,omitempty"`
+	Constraints *Constraints `protobuf:"bytes,4,opt,name=Constraints,proto3" json:"Constraints,omitempty"`
 }
 
-func (x *Server) Reset() {
-	*x = Server{}
+func (x *Target) Reset() {
+	*x = Target{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_momo_momo_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -130,13 +100,13 @@ func (x *Server) Reset() {
 	}
 }
 
-func (x *Server) String() string {
+func (x *Target) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Server) ProtoMessage() {}
+func (*Target) ProtoMessage() {}
 
-func (x *Server) ProtoReflect() protoreflect.Message {
+func (x *Target) ProtoReflect() protoreflect.Message {
 	mi := &file_momo_momo_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -148,29 +118,53 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Server.ProtoReflect.Descriptor instead.
-func (*Server) Descriptor() ([]byte, []int) {
+// Deprecated: Use Target.ProtoReflect.Descriptor instead.
+func (*Target) Descriptor() ([]byte, []int) {
 	return file_momo_momo_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Server) GetServer() string {
+func (x *Target) GetID() string {
 	if x != nil {
-		return x.Server
+		return x.ID
 	}
 	return ""
 }
 
-type Source struct {
+func (x *Target) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *Target) GetOperand() string {
+	if x != nil {
+		return x.Operand
+	}
+	return ""
+}
+
+func (x *Target) GetConstraints() *Constraints {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
+type Constraints struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ID  string        `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Req *Requirements `protobuf:"bytes,2,opt,name=req,proto3" json:"req,omitempty"`
+	Privacylevel string `protobuf:"bytes,1,opt,name=privacylevel,proto3" json:"privacylevel,omitempty"`
+	Latency      string `protobuf:"bytes,2,opt,name=latency,proto3" json:"latency,omitempty"`
+	Sourcekind   string `protobuf:"bytes,3,opt,name=sourcekind,proto3" json:"sourcekind,omitempty"`
+	Modelkind    string `protobuf:"bytes,4,opt,name=modelkind,proto3" json:"modelkind,omitempty"`
+	Minaccuracy  int32  `protobuf:"varint,5,opt,name=minaccuracy,proto3" json:"minaccuracy,omitempty"`
 }
 
-func (x *Source) Reset() {
-	*x = Source{}
+func (x *Constraints) Reset() {
+	*x = Constraints{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_momo_momo_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -178,13 +172,13 @@ func (x *Source) Reset() {
 	}
 }
 
-func (x *Source) String() string {
+func (x *Constraints) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Source) ProtoMessage() {}
+func (*Constraints) ProtoMessage() {}
 
-func (x *Source) ProtoReflect() protoreflect.Message {
+func (x *Constraints) ProtoReflect() protoreflect.Message {
 	mi := &file_momo_momo_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -196,210 +190,42 @@ func (x *Source) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Source.ProtoReflect.Descriptor instead.
-func (*Source) Descriptor() ([]byte, []int) {
+// Deprecated: Use Constraints.ProtoReflect.Descriptor instead.
+func (*Constraints) Descriptor() ([]byte, []int) {
 	return file_momo_momo_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Source) GetID() string {
+func (x *Constraints) GetPrivacylevel() string {
 	if x != nil {
-		return x.ID
+		return x.Privacylevel
 	}
 	return ""
 }
 
-func (x *Source) GetReq() *Requirements {
+func (x *Constraints) GetLatency() string {
 	if x != nil {
-		return x.Req
-	}
-	return nil
-}
-
-type Sink struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	ID  string        `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Req *Requirements `protobuf:"bytes,2,opt,name=req,proto3" json:"req,omitempty"`
-}
-
-func (x *Sink) Reset() {
-	*x = Sink{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_momo_momo_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Sink) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Sink) ProtoMessage() {}
-
-func (x *Sink) ProtoReflect() protoreflect.Message {
-	mi := &file_momo_momo_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Sink.ProtoReflect.Descriptor instead.
-func (*Sink) Descriptor() ([]byte, []int) {
-	return file_momo_momo_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Sink) GetID() string {
-	if x != nil {
-		return x.ID
+		return x.Latency
 	}
 	return ""
 }
 
-func (x *Sink) GetReq() *Requirements {
+func (x *Constraints) GetSourcekind() string {
 	if x != nil {
-		return x.Req
-	}
-	return nil
-}
-
-type Model struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	ID  string        `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Req *Requirements `protobuf:"bytes,2,opt,name=req,proto3" json:"req,omitempty"`
-}
-
-func (x *Model) Reset() {
-	*x = Model{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_momo_momo_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Model) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Model) ProtoMessage() {}
-
-func (x *Model) ProtoReflect() protoreflect.Message {
-	mi := &file_momo_momo_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Model.ProtoReflect.Descriptor instead.
-func (*Model) Descriptor() ([]byte, []int) {
-	return file_momo_momo_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Model) GetID() string {
-	if x != nil {
-		return x.ID
+		return x.Sourcekind
 	}
 	return ""
 }
 
-func (x *Model) GetReq() *Requirements {
+func (x *Constraints) GetModelkind() string {
 	if x != nil {
-		return x.Req
-	}
-	return nil
-}
-
-type Requirements struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Accuracy     string `protobuf:"bytes,1,opt,name=accuracy,proto3" json:"accuracy,omitempty"`
-	Size         string `protobuf:"bytes,2,opt,name=size,proto3" json:"size,omitempty"`
-	Distribution string `protobuf:"bytes,3,opt,name=distribution,proto3" json:"distribution,omitempty"`
-	Kind         string `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"`
-	Num          int32  `protobuf:"varint,5,opt,name=num,proto3" json:"num,omitempty"`
-}
-
-func (x *Requirements) Reset() {
-	*x = Requirements{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_momo_momo_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Requirements) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Requirements) ProtoMessage() {}
-
-func (x *Requirements) ProtoReflect() protoreflect.Message {
-	mi := &file_momo_momo_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Requirements.ProtoReflect.Descriptor instead.
-func (*Requirements) Descriptor() ([]byte, []int) {
-	return file_momo_momo_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Requirements) GetAccuracy() string {
-	if x != nil {
-		return x.Accuracy
+		return x.Modelkind
 	}
 	return ""
 }
 
-func (x *Requirements) GetSize() string {
+func (x *Constraints) GetMinaccuracy() int32 {
 	if x != nil {
-		return x.Size
-	}
-	return ""
-}
-
-func (x *Requirements) GetDistribution() string {
-	if x != nil {
-		return x.Distribution
-	}
-	return ""
-}
-
-func (x *Requirements) GetKind() string {
-	if x != nil {
-		return x.Kind
-	}
-	return ""
-}
-
-func (x *Requirements) GetNum() int32 {
-	if x != nil {
-		return x.Num
+		return x.Minaccuracy
 	}
 	return 0
 }
@@ -415,7 +241,7 @@ type Status struct {
 func (x *Status) Reset() {
 	*x = Status{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_momo_momo_proto_msgTypes[6]
+		mi := &file_momo_momo_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -428,7 +254,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_momo_momo_proto_msgTypes[6]
+	mi := &file_momo_momo_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +267,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_momo_momo_proto_rawDescGZIP(), []int{6}
+	return file_momo_momo_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Status) GetStatus() string {
@@ -455,48 +281,36 @@ var File_momo_momo_proto protoreflect.FileDescriptor
 
 var file_momo_momo_proto_rawDesc = []byte{
 	0x0a, 0x0f, 0x6d, 0x6f, 0x6d, 0x6f, 0x2f, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x12, 0x04, 0x6d, 0x6f, 0x6d, 0x6f, 0x22, 0xd5, 0x01, 0x0a, 0x08, 0x50, 0x69, 0x70, 0x65,
-	0x6c, 0x69, 0x6e, 0x65, 0x12, 0x1e, 0x0a, 0x0a, 0x64, 0x69, 0x73, 0x74, 0x49, 0x6e, 0x74, 0x65,
-	0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0a, 0x64, 0x69, 0x73, 0x74, 0x49, 0x6e,
-	0x74, 0x65, 0x6e, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x26, 0x0a, 0x07, 0x73, 0x65, 0x72, 0x76,
-	0x65, 0x72, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f,
-	0x2e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x07, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73,
-	0x12, 0x26, 0x0a, 0x07, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x0c, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52,
-	0x07, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x12, 0x23, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x65,
-	0x6c, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e,
-	0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x06, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x12, 0x20, 0x0a,
-	0x05, 0x73, 0x69, 0x6e, 0x6b, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x6d,
-	0x6f, 0x6d, 0x6f, 0x2e, 0x53, 0x69, 0x6e, 0x6b, 0x52, 0x05, 0x73, 0x69, 0x6e, 0x6b, 0x73, 0x22,
-	0x20, 0x0a, 0x06, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x65, 0x72,
-	0x76, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x65, 0x72, 0x76, 0x65,
-	0x72, 0x22, 0x3e, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x49,
-	0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44, 0x12, 0x24, 0x0a, 0x03, 0x72,
-	0x65, 0x71, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e,
-	0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x03, 0x72, 0x65,
-	0x71, 0x22, 0x3c, 0x0a, 0x04, 0x53, 0x69, 0x6e, 0x6b, 0x12, 0x0e, 0x0a, 0x02, 0x49, 0x44, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44, 0x12, 0x24, 0x0a, 0x03, 0x72, 0x65, 0x71,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x03, 0x72, 0x65, 0x71, 0x22,
-	0x3d, 0x0a, 0x05, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x12, 0x0e, 0x0a, 0x02, 0x49, 0x44, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44, 0x12, 0x24, 0x0a, 0x03, 0x72, 0x65, 0x71, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x52, 0x65, 0x71,
-	0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x52, 0x03, 0x72, 0x65, 0x71, 0x22, 0x88,
-	0x01, 0x0a, 0x0c, 0x52, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12,
-	0x1a, 0x0a, 0x08, 0x61, 0x63, 0x63, 0x75, 0x72, 0x61, 0x63, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x08, 0x61, 0x63, 0x63, 0x75, 0x72, 0x61, 0x63, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x73,
-	0x69, 0x7a, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x73, 0x69, 0x7a, 0x65, 0x12,
-	0x22, 0x0a, 0x0c, 0x64, 0x69, 0x73, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x64, 0x69, 0x73, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74,
-	0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x6b, 0x69, 0x6e, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x04, 0x6b, 0x69, 0x6e, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x6e, 0x75, 0x6d, 0x18, 0x05,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x03, 0x6e, 0x75, 0x6d, 0x22, 0x20, 0x0a, 0x06, 0x53, 0x74, 0x61,
-	0x74, 0x75, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x32, 0x35, 0x0a, 0x0b, 0x4f,
-	0x72, 0x63, 0x68, 0x65, 0x73, 0x74, 0x72, 0x61, 0x74, 0x65, 0x12, 0x26, 0x0a, 0x06, 0x44, 0x65,
-	0x70, 0x6c, 0x6f, 0x79, 0x12, 0x0e, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x50, 0x69, 0x70, 0x65,
-	0x6c, 0x69, 0x6e, 0x65, 0x1a, 0x0c, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x53, 0x74, 0x61, 0x74,
+	0x6f, 0x12, 0x04, 0x6d, 0x6f, 0x6d, 0x6f, 0x22, 0x4c, 0x0a, 0x06, 0x49, 0x6e, 0x74, 0x65, 0x6e,
+	0x74, 0x12, 0x1a, 0x0a, 0x08, 0x69, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x49, 0x44, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x08, 0x69, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x49, 0x44, 0x12, 0x26, 0x0a,
+	0x07, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c,
+	0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x52, 0x07, 0x54, 0x61,
+	0x72, 0x67, 0x65, 0x74, 0x73, 0x22, 0x85, 0x01, 0x0a, 0x06, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74,
+	0x12, 0x0e, 0x0a, 0x02, 0x49, 0x44, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x49, 0x44,
+	0x12, 0x1c, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x18,
+	0x0a, 0x07, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x6e, 0x64, 0x12, 0x33, 0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x73,
+	0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e,
+	0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73,
+	0x52, 0x0b, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x22, 0xab, 0x01,
+	0x0a, 0x0b, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x12, 0x22, 0x0a,
+	0x0c, 0x70, 0x72, 0x69, 0x76, 0x61, 0x63, 0x79, 0x6c, 0x65, 0x76, 0x65, 0x6c, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x0c, 0x70, 0x72, 0x69, 0x76, 0x61, 0x63, 0x79, 0x6c, 0x65, 0x76, 0x65,
+	0x6c, 0x12, 0x18, 0x0a, 0x07, 0x6c, 0x61, 0x74, 0x65, 0x6e, 0x63, 0x79, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x07, 0x6c, 0x61, 0x74, 0x65, 0x6e, 0x63, 0x79, 0x12, 0x1e, 0x0a, 0x0a, 0x73,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x6b, 0x69, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x6b, 0x69, 0x6e, 0x64, 0x12, 0x1c, 0x0a, 0x09, 0x6d,
+	0x6f, 0x64, 0x65, 0x6c, 0x6b, 0x69, 0x6e, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09,
+	0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x6b, 0x69, 0x6e, 0x64, 0x12, 0x20, 0x0a, 0x0b, 0x6d, 0x69, 0x6e,
+	0x61, 0x63, 0x63, 0x75, 0x72, 0x61, 0x63, 0x79, 0x18, 0x05, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0b,
+	0x6d, 0x69, 0x6e, 0x61, 0x63, 0x63, 0x75, 0x72, 0x61, 0x63, 0x79, 0x22, 0x20, 0x0a, 0x06, 0x53,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x32, 0x33, 0x0a,
+	0x0b, 0x4f, 0x72, 0x63, 0x68, 0x65, 0x73, 0x74, 0x72, 0x61, 0x74, 0x65, 0x12, 0x24, 0x0a, 0x06,
+	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x12, 0x0c, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x49, 0x6e,
+	0x74, 0x65, 0x6e, 0x74, 0x1a, 0x0c, 0x2e, 0x6d, 0x6f, 0x6d, 0x6f, 0x2e, 0x53, 0x74, 0x61, 0x74,
 	0x75, 0x73, 0x42, 0x21, 0x5a, 0x1f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
 	0x2f, 0x61, 0x62, 0x68, 0x31, 0x35, 0x2f, 0x6d, 0x6c, 0x66, 0x6f, 0x2d, 0x64, 0x69, 0x73, 0x74,
 	0x2f, 0x6d, 0x6f, 0x6d, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
@@ -514,31 +328,23 @@ func file_momo_momo_proto_rawDescGZIP() []byte {
 	return file_momo_momo_proto_rawDescData
 }
 
-var file_momo_momo_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_momo_momo_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_momo_momo_proto_goTypes = []interface{}{
-	(*Pipeline)(nil),     // 0: momo.Pipeline
-	(*Server)(nil),       // 1: momo.Server
-	(*Source)(nil),       // 2: momo.Source
-	(*Sink)(nil),         // 3: momo.Sink
-	(*Model)(nil),        // 4: momo.Model
-	(*Requirements)(nil), // 5: momo.Requirements
-	(*Status)(nil),       // 6: momo.Status
+	(*Intent)(nil),      // 0: momo.Intent
+	(*Target)(nil),      // 1: momo.Target
+	(*Constraints)(nil), // 2: momo.Constraints
+	(*Status)(nil),      // 3: momo.Status
 }
 var file_momo_momo_proto_depIdxs = []int32{
-	1, // 0: momo.Pipeline.servers:type_name -> momo.Server
-	2, // 1: momo.Pipeline.sources:type_name -> momo.Source
-	4, // 2: momo.Pipeline.models:type_name -> momo.Model
-	3, // 3: momo.Pipeline.sinks:type_name -> momo.Sink
-	5, // 4: momo.Source.req:type_name -> momo.Requirements
-	5, // 5: momo.Sink.req:type_name -> momo.Requirements
-	5, // 6: momo.Model.req:type_name -> momo.Requirements
-	0, // 7: momo.Orchestrate.Deploy:input_type -> momo.Pipeline
-	6, // 8: momo.Orchestrate.Deploy:output_type -> momo.Status
-	8, // [8:9] is the sub-list for method output_type
-	7, // [7:8] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	1, // 0: momo.Intent.Targets:type_name -> momo.Target
+	2, // 1: momo.Target.Constraints:type_name -> momo.Constraints
+	0, // 2: momo.Orchestrate.Deploy:input_type -> momo.Intent
+	3, // 3: momo.Orchestrate.Deploy:output_type -> momo.Status
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_momo_momo_proto_init() }
@@ -548,7 +354,7 @@ func file_momo_momo_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_momo_momo_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Pipeline); i {
+			switch v := v.(*Intent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -560,7 +366,7 @@ func file_momo_momo_proto_init() {
 			}
 		}
 		file_momo_momo_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Server); i {
+			switch v := v.(*Target); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -572,7 +378,7 @@ func file_momo_momo_proto_init() {
 			}
 		}
 		file_momo_momo_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Source); i {
+			switch v := v.(*Constraints); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -584,42 +390,6 @@ func file_momo_momo_proto_init() {
 			}
 		}
 		file_momo_momo_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Sink); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_momo_momo_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Model); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_momo_momo_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Requirements); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_momo_momo_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Status); i {
 			case 0:
 				return &v.state
@@ -638,7 +408,7 @@ func file_momo_momo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_momo_momo_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

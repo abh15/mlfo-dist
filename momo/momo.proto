@@ -12,46 +12,29 @@ option go_package = "github.com/abh15/mlfo-dist/momo";
 package momo;
 
 service Orchestrate{
-    rpc Deploy (Pipeline) returns (Status);
+    rpc Deploy (Intent) returns (Status);
 }
 
-message Pipeline {
-    bool distIntent = 1;
-    string type = 2;
-    repeated Server servers = 3;
-    repeated Source sources = 4; 
-    repeated Model models = 5;
-    repeated Sink sinks = 6; 
-   
+message Intent {
+    string intentID = 1;
+    repeated Target Targets = 2;
 }
 
-message Server{
-    string server = 1;
-}
-
-message Source {
-    string ID = 1;
-    Requirements req = 2;
-}
-
-message Sink {
-    string ID = 1;
-    Requirements req = 2; 
-}
-
-message Model {
+message Target{
     string ID = 1 ;
-    Requirements req = 2;
+    string operation = 2;
+    string operand = 3;
+    Constraints Constraints = 4;
 }
 
-message Requirements{
-    string accuracy = 1;
-    string size = 2;
-    string distribution = 3;
-    string kind = 4;
-    int32 num = 5;
+message Constraints {
+   string privacylevel = 1;
+   string latency = 2;
+   string sourcekind = 3;
+   string modelkind = 4;
+   int32 minaccuracy = 5;
 }
 
 message Status {
- string status = 1;
+    string status = 1;
 }

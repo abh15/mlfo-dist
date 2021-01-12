@@ -8,44 +8,38 @@ import (
 
 //Intent is Parent struct for input intent
 type Intent struct {
-	DistIntent bool   `yaml:"distIntent"`
-	Type       string `yaml:"type"`
-	Servers    []Server
-	Sources    []Source
-	Models     []Model
-	Sinks      []Sink
+	IntentID string `yaml:"intentID"`
+	Targets  []Target
+	Exp      Ex
 }
 
-//Source specifies source requirements and/or ID
-type Source struct {
-	ID  string `yaml:"id"`
-	Req Requirements
+type IntentNoExp struct {
+	IntentID string `yaml:"intentID"`
+	Targets  []Target
 }
 
-//Sink specifies source requirements and/or ID
-type Sink struct {
-	ID  string `yaml:"id"`
-	Req Requirements
+//Ex consists of parameters required for simulation experiment
+type Ex struct {
+	Eperfog int32 `yaml:"eperfog"`
+	Numfog  int32 `yaml:"numfog"`
+	Odelay  int32 `yaml:"odelay"`
 }
 
-//Model specifies source requirements and/or ID
-type Model struct {
-	ID  string `yaml:"id"`
-	Req Requirements
+//Target describes the desired actions for the target
+type Target struct {
+	ID          string `yaml:"id"`
+	Operation   string `yaml:"operation"`
+	Operand     string `yaml:"operand"`
+	Constraints Constraints
 }
 
-//Requirements gives detailed reqs for pipeline nodes
-type Requirements struct {
-	Accuracy     string `yaml:"accuracy"`
-	Size         string `yaml:"size"`
-	Distribution string `yaml:"distribution"`
-	Kind         string `yaml:"kind"`
-	Num          int32  `yaml:"num"`
-}
-
-//Server specifies server/CloudMLFO IP
-type Server struct {
-	Server string `yaml:"server"`
+//Constraints describes constraints for the action
+type Constraints struct {
+	Privacylevel string `yaml:"privacylevel"`
+	Latency      string `yaml:"latency"`
+	Sourcekind   string `yaml:"sourcekind"`
+	Modelkind    string `yaml:"modelkind"`
+	Minaccuracy  int32  `yaml:"minaccuracy"`
 }
 
 //Parse parses the input yaml file into the Intent{} struct
