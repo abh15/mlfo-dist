@@ -13,6 +13,7 @@ type Intent struct {
 	Exp      Ex
 }
 
+//IntentNoExp used for mapping with pb struct
 type IntentNoExp struct {
 	IntentID string `yaml:"intentID"`
 	Targets  []Target
@@ -22,7 +23,6 @@ type IntentNoExp struct {
 type Ex struct {
 	Eperfog int32 `yaml:"eperfog"`
 	Numfog  int32 `yaml:"numfog"`
-	Odelay  int32 `yaml:"odelay"`
 }
 
 //Target describes the desired actions for the target

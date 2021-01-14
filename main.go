@@ -26,12 +26,20 @@ const (
 )
 
 //Global Variable
-//newIntents has structure <intent_target_hostname, intent>. It consists of intents for peers as well as higher nodes
-var newIntents = make(map[string]parser.IntentNoExp)
 var aggservpresent = false
 var globalaggservpresent = false
+var fogtrig = false
+var edgedelay = "1"
+var fogdelay = "1"
+var clouddelay = "1"
 
 func main() {
+
+	if len(os.Args) > 1 {
+		edgedelay = os.Args[1]
+		fogdelay = os.Args[2]
+		clouddelay = os.Args[3]
+	}
 
 	//Start grpc server for momo on port 9000 in different thread
 	wg := new(sync.WaitGroup)
@@ -51,7 +59,7 @@ func main() {
 
 //receiveHandler handles the yaml file sent over REST
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
-
+	var outgoingIntents = make(map[string]parser.IntentNoExp)
 	yamlfile, _, err := r.FormFile("file")
 	if err != nil {
 		//send error as HTTP response
@@ -87,9 +95,9 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 
 		pipelines := resolvePipeline(intent)
-		resolvePeerIntents(intent)
-		resolveUpperIntents(intent, pipelines)
-		sendIntents()
+		outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
+		outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
+		sendIntents(outgoingIntents)
 		deploylocal(pipelines)
 
 		elapsed := time.Since(start)
@@ -128,7 +136,7 @@ func resolvePipeline(in parser.Intent) []map[string]string {
 }
 
 //resolvePeerIntents creates intents for peer MLFOs
-func resolvePeerIntents(in parser.Intent) {
+func resolvePeerIntents(in parser.Intent, newIntents map[string]parser.IntentNoExp) map[string]parser.IntentNoExp {
 
 	//create intent for peer MLFOs
 	for _, target := range in.Targets {
@@ -153,10 +161,11 @@ func resolvePeerIntents(in parser.Intent) {
 			delete(newIntents, "10.0.1.2")
 		}
 	}
+	return newIntents
 }
 
 //resolveUpperIntents resolves intents for higher level MLFOs
-func resolveUpperIntents(in parser.Intent, pipe []map[string]string) {
+func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents map[string]parser.IntentNoExp) map[string]parser.IntentNoExp {
 
 	var faintent parser.IntentNoExp
 	var fatargetList []parser.Target
@@ -197,7 +206,7 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string) {
 				}
 			}
 		} else if target.Operation == "aggregate.global" {
-			if strings.Contains(nodehostname, "fog") {
+			if strings.Contains(nodehostname, "fog") && !fogtrig {
 				fatarget1.ID = "cloud0"
 				fatarget1.Operation = "aggregate"
 				fatarget1.Operand = "model.federated"
@@ -206,28 +215,39 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string) {
 				fatargetList = append(fatargetList, fatarget1)
 				faintent.Targets = fatargetList
 				newIntents["10.0.0.1"] = faintent
+				fogtrig = true
 			}
 		} else {
 			log.Println("No upper intents for cloud")
 		}
 
 	}
+	return newIntents
 }
 
 //sendIntents sends intents over Mo-Mo to all other MLFOs
-func sendIntents() {
+func sendIntents(outIntents map[string]parser.IntentNoExp) {
 	var pbIntent *pb.Intent
-	if len(newIntents) != 0 {
-		log.Printf("Sending the following intents\n %+v\n", newIntents)
-		for address, intentmsg := range newIntents {
+	if len(outIntents) != 0 {
+		log.Printf("Sending the following intents\n %+v\n", outIntents)
+		var waitgroup sync.WaitGroup
+		waitgroup.Add(len(outIntents))
+
+		for address, intentmsg := range outIntents {
 			intentBytes, err := json.Marshal(intentmsg)
 			if err != nil {
 				log.Println(err.Error())
 			}
 			json.Unmarshal(intentBytes, &pbIntent)
-			reply := Send(address+momoport, pbIntent) //handle status
-			log.Printf("%+v", reply)
+			sockadd := address + momoport
+			go func(sockadd string, pbIntent *pb.Intent) {
+				reply := Send(sockadd, pbIntent) //handle status
+				log.Printf("%+v", reply)
+				waitgroup.Done()
+			}(sockadd, pbIntent)
+
 		}
+		waitgroup.Wait()
 	}
 }
 
@@ -237,47 +257,67 @@ func deploylocal(pipelines []map[string]string) {
 	if err != nil {
 		log.Println(err.Error())
 	}
+	if strings.Contains(nodehostname, "cloud") {
+		if !globalaggservpresent {
+			globalaggservpresent = true
+			//Simulate fed server creation delay
+			t, err := strconv.Atoi(clouddelay)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			log.Println("Creating Global agg server...")
+			time.Sleep(time.Duration(t) * time.Second)
+			log.Println("...Global agg Server created")
+			//set global aggregation server present status to true
+
+		} else {
+			//No delay/trivial delay
+			log.Println("Global agg server already present")
+		}
+	}
 	if strings.Contains(nodehostname, "fog") {
 		if !aggservpresent {
 			//Simulate fed server creation delay
-			time.Sleep(1 * time.Second)
+			t, err := strconv.Atoi(fogdelay)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			log.Println("Creating fed agg server...")
+			time.Sleep(time.Duration(t) * time.Second)
+			log.Println("...Fed agg Server created")
 			//set aggregation server present status to true
 			aggservpresent = true
+		} else {
+			//No delay/trivial delay
+			log.Println("Fed Agg server already present")
 		}
 	}
-	if strings.Contains(nodehostname, "cloud") {
-		if !globalaggservpresent {
-			//Simulate fed server creation delay
-			time.Sleep(1 * time.Second)
-			//set global aggregation server present status to true
-			globalaggservpresent = true
+	if strings.Contains(nodehostname, "edge") {
+		//Simulate fed server creation delay
+		t, err := strconv.Atoi(edgedelay)
+		if err != nil {
+			log.Println(err.Error())
 		}
+		log.Println("Deploying local fedml pipeline...")
+		time.Sleep(time.Duration(t) * time.Second)
+		log.Println("...Pipeline deployed")
 	}
-	log.Println("Deployed local pipelines on " + nodehostname)
-	// for _, pipeline := range pipelines {
-	// 	if pipeline["model"] == "federated" {
-	// 		log.Println("Deploying aggregation server ")
-	// 	}
-	// }
 
-}
-
-//server is used to implement pb.UnimplementedOrchestrateServer
-type server struct {
-	pb.UnimplementedOrchestrateServer
 }
 
 //Deploy is called when a Mo-Mo message is received on MLFO server
 func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status, error) {
 	start2 := time.Now()
-	log.Println(rcvdIntent)
+
+	//newIntents has structure <intent_target_hostname, intent>. It consists of intents for peers as well as higher nodes
+	var outgoingIntents = make(map[string]parser.IntentNoExp)
 	var intent parser.Intent
 	intentbytes, err := json.Marshal(rcvdIntent)
 	if err != nil {
 		log.Println(err.Error())
 	}
 	json.Unmarshal(intentbytes, &intent)
-	log.Printf("Received the following intent\n%v", intent)
+	log.Printf("Received the following intent\n%v\n", intent)
 
 	//here intent can be used as normal struct
 	/*
@@ -287,17 +327,27 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 		Step 4: Send intents over Mo-Mo
 		Step 5: Deploy local pipelines
 	*/
+
 	pipelines := resolvePipeline(intent)
-	resolvePeerIntents(intent)
-	resolveUpperIntents(intent, pipelines)
-	sendIntents()
+	outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
+	outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
+	sendIntents(outgoingIntents)
 	deploylocal(pipelines)
 
 	elapsed2 := time.Since(start2)
-	log.Printf("HTTP Intent took %s", elapsed2)
+	log.Printf("MoMo Intent took %s", elapsed2)
 	//return status to client over mo-mo. This may also contain FedIP of created Fed Server
-	status := "emptystatus"
+	nodehostname, err := os.Hostname()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	status := nodehostname + "replied"
 	return &pb.Status{Status: status}, nil
+}
+
+//server is used to implement pb.UnimplementedOrchestrateServer
+type server struct {
+	pb.UnimplementedOrchestrateServer
 }
 
 //StartServer starts MLFO grpc server

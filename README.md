@@ -12,11 +12,13 @@ go v1.14
 
 2. Copy the mininet/topologie.py to containernet/examples directory
 
-3. `sudo python3 examples/my_script.py` 
+3. `sudo python3 examples/topologie.py` 
 
-4. `sudo docker exec -it mn.<nodename> /app/mlfo`
+4. Start mlfo and set edge, fog and cloud delays to 2 : `sudo bash mininet/startapp.sh 2 2 2`
 
 5. From another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
+
+6. To start a new experiment , reset containers : `sudo bash mininet/reset.sh`
 
 
 ## Misc commands

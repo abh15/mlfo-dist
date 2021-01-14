@@ -9,7 +9,6 @@ targets:
 exp:
   eperfog: 2
   numfog: 2
-  odelay: 1
 
 
 
