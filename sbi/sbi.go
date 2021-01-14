@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -250,12 +251,50 @@ func MatchServer(model string, source string) (bool, string) {
 	return false, ""
 }
 
-// //GetAssetMetadata fetches metadata from
-// func GetAssetMetadata() {
-// 	return "", ""
-// }
+//CheckServer is dummy function to checks if server exists
+func CheckServer() bool {
+	//TODO: add search delay
+	if _, err := os.Stat("/fedserv"); err == nil {
+		//Server exists
+		log.Println("Agg server already present")
+		return true
+	}
+	return false
+}
 
-// //GetComputeProfile fetches
-// func GetComputeProfile() {
+//LaunchServer is dummy function to launch feed server
+func LaunchServer(delay string) {
+	t, err := strconv.Atoi(delay)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	log.Println("Creating agg server...")
+	f, _ := os.Create("/fedserv")
+	defer f.Close()
+	time.Sleep(time.Duration(t) * time.Second)
+	log.Println("...agg Server created")
+}
 
-// }
+//DeleteFile deletes fedserv file
+func DeleteFile(path string) {
+	err := os.Remove(path)
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+
+//CheckFogHit checks if the fog has been hit i.e a intent has been incident
+func CheckFogHit() bool {
+	if _, err := os.Stat("/foghit"); err == nil {
+		log.Println("Fog is hit")
+		return true
+	}
+	return false
+}
+
+//RegisterFogHit writes a file to know if a intent has hit the fog
+func RegisterFogHit() {
+	f, _ := os.Create("/foghit")
+	defer f.Close()
+
+}

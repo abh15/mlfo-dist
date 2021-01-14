@@ -10,13 +10,16 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	pb "github.com/abh15/mlfo-dist/momo"
 	"github.com/abh15/mlfo-dist/parser"
+	"github.com/abh15/mlfo-dist/sbi"
 	"google.golang.org/grpc"
 )
 
@@ -26,14 +29,28 @@ const (
 )
 
 //Global Variable
-var aggservpresent = false
-var globalaggservpresent = false
-var fogtrig = false
 var edgedelay = "1"
 var fogdelay = "1"
 var clouddelay = "1"
 
 func main() {
+	var gracefulStop = make(chan os.Signal)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+	go func() {
+		sig := <-gracefulStop
+		fmt.Printf("caught sig: %+v", sig) //add if check hier
+		if sbi.CheckServer() {
+			sbi.DeleteFile("/fedserv")
+		}
+		if sbi.CheckFogHit() {
+			sbi.DeleteFile("/foghit")
+		}
+
+		fmt.Println("Wait for 2 second to finish server deletion")
+		time.Sleep(2 * time.Second)
+		os.Exit(0)
+	}()
 
 	if len(os.Args) > 1 {
 		edgedelay = os.Args[1]
@@ -171,6 +188,7 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 	var fatargetList []parser.Target
 	var fatarget1 parser.Target
 	var fatarget2 parser.Target
+	var mutex = &sync.Mutex{}
 
 	nodehostname, err := os.Hostname()
 	if err != nil {
@@ -206,16 +224,22 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 				}
 			}
 		} else if target.Operation == "aggregate.global" {
-			if strings.Contains(nodehostname, "fog") && !fogtrig {
-				fatarget1.ID = "cloud0"
-				fatarget1.Operation = "aggregate"
-				fatarget1.Operand = "model.federated"
-				fatarget1.Constraints.Modelkind = target.Constraints.Modelkind
-				fatarget1.Constraints.Sourcekind = target.Constraints.Sourcekind
-				fatargetList = append(fatargetList, fatarget1)
-				faintent.Targets = fatargetList
-				newIntents["10.0.0.1"] = faintent
-				fogtrig = true
+			if strings.Contains(nodehostname, "fog") {
+				mutex.Lock()
+				if sbi.CheckFogHit() == false {
+					//if server does not exist create one
+					fatarget1.ID = "cloud0"
+					fatarget1.Operation = "aggregate"
+					fatarget1.Operand = "model.federated"
+					fatarget1.Constraints.Modelkind = target.Constraints.Modelkind
+					fatarget1.Constraints.Sourcekind = target.Constraints.Sourcekind
+					fatargetList = append(fatargetList, fatarget1)
+					faintent.Targets = fatargetList
+					newIntents["10.0.0.1"] = faintent
+					sbi.RegisterFogHit()
+				}
+				mutex.Unlock()
+
 			}
 		} else {
 			log.Println("No upper intents for cloud")
@@ -253,54 +277,39 @@ func sendIntents(outIntents map[string]parser.IntentNoExp) {
 
 //deploylocal deploys local pipelines in the local domain
 func deploylocal(pipelines []map[string]string) {
+	var mutex = &sync.Mutex{}
 	nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
 	}
 	if strings.Contains(nodehostname, "cloud") {
-		if !globalaggservpresent {
-			globalaggservpresent = true
-			//Simulate fed server creation delay
-			t, err := strconv.Atoi(clouddelay)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Println("Creating Global agg server...")
-			time.Sleep(time.Duration(t) * time.Second)
-			log.Println("...Global agg Server created")
-			//set global aggregation server present status to true
-
-		} else {
-			//No delay/trivial delay
-			log.Println("Global agg server already present")
+		mutex.Lock()
+		if sbi.CheckServer() == false {
+			//if server does not exist create one
+			sbi.LaunchServer(clouddelay)
 		}
+		mutex.Unlock()
 	}
 	if strings.Contains(nodehostname, "fog") {
-		if !aggservpresent {
-			//Simulate fed server creation delay
-			t, err := strconv.Atoi(fogdelay)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Println("Creating fed agg server...")
-			time.Sleep(time.Duration(t) * time.Second)
-			log.Println("...Fed agg Server created")
-			//set aggregation server present status to true
-			aggservpresent = true
-		} else {
-			//No delay/trivial delay
-			log.Println("Fed Agg server already present")
+		mutex.Lock()
+		if sbi.CheckServer() == false {
+			//if server does not exist create one
+			sbi.LaunchServer(fogdelay)
 		}
+		mutex.Unlock()
 	}
 	if strings.Contains(nodehostname, "edge") {
-		//Simulate fed server creation delay
-		t, err := strconv.Atoi(edgedelay)
-		if err != nil {
-			log.Println(err.Error())
-		}
-		log.Println("Deploying local fedml pipeline...")
-		time.Sleep(time.Duration(t) * time.Second)
-		log.Println("...Pipeline deployed")
+		//Simulate local ML pipeline creation delay
+		// t, err := strconv.Atoi(edgedelay)
+		// if err != nil {
+		// 	log.Println(err.Error())
+		// }
+		// log.Println("Deploying local fedml pipeline...")
+		// time.Sleep(time.Duration(t) * time.Second)
+		// log.Println("...Pipeline deployed")
+		mutex.Lock()
+		sbi.LaunchServer(edgedelay)
+		mutex.Unlock()
 	}
 
 }
