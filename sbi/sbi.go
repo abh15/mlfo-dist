@@ -298,3 +298,12 @@ func RegisterFogHit() {
 	defer f.Close()
 
 }
+
+//CreateFedMLCient simulates creating local FL client pipeline
+func CreateFedMLCient(delay string) {
+	t, err := strconv.Atoi(delay)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	time.Sleep(time.Duration(t) * time.Second)
+}

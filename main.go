@@ -34,6 +34,7 @@ var fogdelay = "1"
 var clouddelay = "1"
 
 func main() {
+	//Handle graceful exit
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
@@ -47,8 +48,8 @@ func main() {
 			sbi.DeleteFile("/foghit")
 		}
 
-		fmt.Println("Wait for 2 second to finish server deletion")
-		time.Sleep(2 * time.Second)
+		// fmt.Println("Wait for 2 second to finish server deletion")
+		// time.Sleep(2 * time.Second)
 		os.Exit(0)
 	}()
 
@@ -201,7 +202,7 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 			if target.Constraints.Privacylevel == "high" {
 				if target.Constraints.Latency == "low" {
 					//If this two conditions are met, it means a hiearchical fed agg intent is required
-					faintent.IntentID = "fedintent-fog" + nodenum
+					faintent.IntentID = "fedintent-fog-" + nodehostname
 					if strings.Contains(nodehostname, "edge") {
 						// Target 1
 						fatarget1.ID = "fog" + nodenum
@@ -251,25 +252,30 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 
 //sendIntents sends intents over Mo-Mo to all other MLFOs
 func sendIntents(outIntents map[string]parser.IntentNoExp) {
-	var pbIntent *pb.Intent
-	if len(outIntents) != 0 {
-		log.Printf("Sending the following intents\n %+v\n", outIntents)
-		var waitgroup sync.WaitGroup
-		waitgroup.Add(len(outIntents))
+	var waitgroup sync.WaitGroup
+	var outpbIntents = make(map[string]*pb.Intent)
 
+	if len(outIntents) != 0 {
 		for address, intentmsg := range outIntents {
+			var pbIntent *pb.Intent
 			intentBytes, err := json.Marshal(intentmsg)
 			if err != nil {
 				log.Println(err.Error())
 			}
 			json.Unmarshal(intentBytes, &pbIntent)
-			sockadd := address + momoport
-			go func(sockadd string, pbIntent *pb.Intent) {
-				reply := Send(sockadd, pbIntent) //handle status
+			outpbIntents[address+momoport] = pbIntent
+		}
+
+		waitgroup.Add(len(outpbIntents))
+		log.Printf("%+v", outpbIntents)
+
+		for sockadd, pbmsg := range outpbIntents {
+			go func(sockadd string, pbmsg *pb.Intent) {
+				//log.Printf("Sending this intent to-- %+v\n%+v\n", sockadd, pbmsg)
+				reply := Send(sockadd, pbmsg) //handle status
 				log.Printf("%+v", reply)
 				waitgroup.Done()
-			}(sockadd, pbIntent)
-
+			}(sockadd, pbmsg)
 		}
 		waitgroup.Wait()
 	}
@@ -308,7 +314,7 @@ func deploylocal(pipelines []map[string]string) {
 		// time.Sleep(time.Duration(t) * time.Second)
 		// log.Println("...Pipeline deployed")
 		mutex.Lock()
-		sbi.LaunchServer(edgedelay)
+		sbi.CreateFedMLCient(edgedelay)
 		mutex.Unlock()
 	}
 
@@ -377,7 +383,7 @@ func StartServer(port string) {
 //Send sends msg over grpc
 func Send(address string, message *pb.Intent) string {
 	log.Printf("Connecting to %v ......", address)
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
