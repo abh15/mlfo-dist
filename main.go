@@ -32,6 +32,7 @@ const (
 var edgedelay = "1"
 var fogdelay = "1"
 var clouddelay = "1"
+var mutex = &sync.Mutex{}
 
 func main() {
 	//Handle graceful exit
@@ -52,6 +53,8 @@ func main() {
 		// time.Sleep(2 * time.Second)
 		os.Exit(0)
 	}()
+
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	if len(os.Args) > 1 {
 		edgedelay = os.Args[1]
@@ -116,7 +119,7 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
 		outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
 		sendIntents(outgoingIntents)
-		deploylocal(pipelines)
+		_ = deploylocal(pipelines)
 
 		elapsed := time.Since(start)
 		log.Printf("HTTP Intent took %s", elapsed)
@@ -189,7 +192,6 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 	var fatargetList []parser.Target
 	var fatarget1 parser.Target
 	var fatarget2 parser.Target
-	var mutex = &sync.Mutex{}
 
 	nodehostname, err := os.Hostname()
 	if err != nil {
@@ -254,7 +256,7 @@ func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents 
 func sendIntents(outIntents map[string]parser.IntentNoExp) {
 	var waitgroup sync.WaitGroup
 	var outpbIntents = make(map[string]*pb.Intent)
-
+	//Convert intent struc to pb intent struc
 	if len(outIntents) != 0 {
 		for address, intentmsg := range outIntents {
 			var pbIntent *pb.Intent
@@ -265,13 +267,10 @@ func sendIntents(outIntents map[string]parser.IntentNoExp) {
 			json.Unmarshal(intentBytes, &pbIntent)
 			outpbIntents[address+momoport] = pbIntent
 		}
-
 		waitgroup.Add(len(outpbIntents))
-		log.Printf("%+v", outpbIntents)
-
 		for sockadd, pbmsg := range outpbIntents {
 			go func(sockadd string, pbmsg *pb.Intent) {
-				//log.Printf("Sending this intent to-- %+v\n%+v\n", sockadd, pbmsg)
+				log.Printf("Sending this intent to-- %+v\n%+v\n", sockadd, pbmsg)
 				reply := Send(sockadd, pbmsg) //handle status
 				log.Printf("%+v", reply)
 				waitgroup.Done()
@@ -282,8 +281,7 @@ func sendIntents(outIntents map[string]parser.IntentNoExp) {
 }
 
 //deploylocal deploys local pipelines in the local domain
-func deploylocal(pipelines []map[string]string) {
-	var mutex = &sync.Mutex{}
+func deploylocal(pipelines []map[string]string) string {
 	nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
@@ -317,7 +315,7 @@ func deploylocal(pipelines []map[string]string) {
 		sbi.CreateFedMLCient(edgedelay)
 		mutex.Unlock()
 	}
-
+	return nodehostname
 }
 
 //Deploy is called when a Mo-Mo message is received on MLFO server
@@ -347,17 +345,12 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 	outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
 	outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
 	sendIntents(outgoingIntents)
-	deploylocal(pipelines)
+	status := deploylocal(pipelines)
 
 	elapsed2 := time.Since(start2)
 	log.Printf("MoMo Intent took %s", elapsed2)
-	//return status to client over mo-mo. This may also contain FedIP of created Fed Server
-	nodehostname, err := os.Hostname()
-	if err != nil {
-		log.Println(err.Error())
-	}
-	status := nodehostname + "replied"
-	return &pb.Status{Status: status}, nil
+	reply := status + "replied"
+	return &pb.Status{Status: reply}, nil
 }
 
 //server is used to implement pb.UnimplementedOrchestrateServer
@@ -390,10 +383,12 @@ func Send(address string, message *pb.Intent) string {
 	defer conn.Close()
 	c := pb.NewOrchestrateClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// defer cancel()
 
-	r, err := c.Deploy(ctx, message)
+	// r, err := c.Deploy(ctx, message)
+
+	r, err := c.Deploy(context.Background(), message)
 	if err != nil {
 		log.Fatalf("could not receive: %v", err)
 	}
