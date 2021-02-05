@@ -262,7 +262,7 @@ func CheckServer() bool {
 	return false
 }
 
-//LaunchServer is dummy function to launch feed server
+//LaunchServer is dummy function to launch fed server
 func LaunchServer(delay string) {
 	t, err := strconv.Atoi(delay)
 	if err != nil {
