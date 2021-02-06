@@ -17,15 +17,12 @@ COPY . .
 RUN go build -o ./out/mlfo .
 
 # Start fresh from a smaller image
-FROM alpine:3.9 
+FROM alpine:latest
 
 RUN apk add ca-certificates
-RUN apk add --update --no-cache git bash tcpdump iperf busybox-extras iproute2 iputils
+RUN apk add --update --no-cache bash tcpdump iperf busybox-extras iproute2 iputils
 
 COPY --from=build_base /tmp/mlfo/out/mlfo /app/mlfo
 
-# This container exposes port 8080 to the outside world
-# EXPOSE 8000
-# EXPOSE 9000
-CMD ["/app/mlfo"]
+ENTRYPOINT ["/app/mlfo"]
 

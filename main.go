@@ -29,9 +29,6 @@ const (
 )
 
 //Global Variable
-var edgedelay = "1"
-var fogdelay = "1"
-var clouddelay = "1"
 var mutex = &sync.Mutex{}
 
 func main() {
@@ -56,12 +53,6 @@ func main() {
 
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
-	if len(os.Args) > 1 {
-		edgedelay = os.Args[1]
-		fogdelay = os.Args[2]
-		clouddelay = os.Args[3]
-	}
-
 	//Start grpc server for momo on port 9000 in different thread
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
@@ -72,11 +63,43 @@ func main() {
 
 	//Start REST server for intent  on port 8000
 	log.Println("Started REST server on " + intentport)
-	http.HandleFunc("/receive", httpReceiveHandler) // Handle the incoming file
+	http.HandleFunc("/receive", httpReceiveHandler) // Handle the incoming intent
+	// http.HandleFunc("/reset", httpResetandler)      // Handle the incoming reset msg
+	// http.HandleFunc("/internalreset", httpIntResetandler)      // Handle the incoming internal reset msg
 	log.Fatal(http.ListenAndServe(intentport, nil))
 
 	wg.Wait()
 }
+
+// //httpResetandler handles the reset request
+// func httpResetandler(w http.ResponseWriter, r *http.Request) {
+
+// 	err := r.ParseForm()
+// 	if err != nil {
+// 		log.Println(err.Error())
+// 		fmt.Fprintf(w, "Bad Request")
+// 	}
+// 	if sbi.CheckServer() {
+// 		sbi.DeleteFile("/fedserv")
+// 	}
+// 	if sbi.CheckFogHit() {
+// 		sbi.DeleteFile("/foghit")
+// 	}
+// 	fmt.Fprintf(w, "OK")
+
+// }
+// //httpIntResetandler
+// func httpIntResetandler (w http.ResponseWriter, r *http.Request)  {
+// 	numnodes := r.FormValue("fog")
+// 		for i := 1; i <= numnodes; i++ {
+// 			//create numnode number of reset reqests for all fog nodes
+// 			resp, err := http.Get("http://webcode.me")
+// 			if err != nil {
+// 				log.Fatal(err)
+// 			}
+// 			defer resp.Body.Close()
+// 		}
+// }
 
 //receiveHandler handles the yaml file sent over REST
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +313,7 @@ func deploylocal(pipelines []map[string]string) string {
 		mutex.Lock()
 		if sbi.CheckServer() == false {
 			//if server does not exist create one
-			sbi.LaunchServer(clouddelay)
+			sbi.LaunchServer()
 		}
 		mutex.Unlock()
 	}
@@ -298,22 +321,16 @@ func deploylocal(pipelines []map[string]string) string {
 		mutex.Lock()
 		if sbi.CheckServer() == false {
 			//if server does not exist create one
-			sbi.LaunchServer(fogdelay)
+			sbi.LaunchServer()
 		}
 		mutex.Unlock()
 	}
 	if strings.Contains(nodehostname, "edge") {
-		//Simulate local ML pipeline creation delay
-		// t, err := strconv.Atoi(edgedelay)
-		// if err != nil {
-		// 	log.Println(err.Error())
-		// }
-		// log.Println("Deploying local fedml pipeline...")
-		// time.Sleep(time.Duration(t) * time.Second)
-		// log.Println("...Pipeline deployed")
-		mutex.Lock()
-		sbi.CreateFedMLCient(edgedelay)
-		mutex.Unlock()
+
+		log.Println("Local edge pipeline deployed")
+		// mutex.Lock()
+		// sbi.CreateFedMLCient(edgedelay)
+		// mutex.Unlock()
 	}
 	return nodehostname
 }
