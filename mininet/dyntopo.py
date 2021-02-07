@@ -25,7 +25,7 @@ net.addLink(cloud0, s0, delay='1ms')
 
 for i in range(1,numfognodes+1):
     sw = net.addSwitch("s"+ str(i))
-    fognode = net.addDocker("fog."+str(i), ip="10.0."+str(i)+".1", dimage="abh15/mlfo:latest", cpu_period=50000, cpu_quota=1000)
+    fognode = net.addDocker("fog."+str(i), ip="10.0."+str(i)+".1", dimage="abh15/mlfo:latest", cpu_period=50000, cpu_quota=10000)
     fognode.start()
     net.addLink(fognode, sw, delay='1ms')
     for j in range(1, numedgeperfog+1):
@@ -45,4 +45,3 @@ info('*** Running CLI\n')
 CLI(net)
 info('*** Stopping network')
 net.stop()
-

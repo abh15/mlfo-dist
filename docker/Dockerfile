@@ -22,7 +22,11 @@ FROM alpine:latest
 RUN apk add ca-certificates
 RUN apk add --update --no-cache bash tcpdump iperf busybox-extras iproute2 iputils
 
+# ENV GRPC_GO_LOG_VERBOSITY_LEVEL 99
+# ENV GRPC_GO_LOG_SEVERITY_LEVEL info
+
 COPY --from=build_base /tmp/mlfo/out/mlfo /app/mlfo
 
 ENTRYPOINT ["/app/mlfo"]
+
 

@@ -95,7 +95,7 @@ func main() {
 // 			//create numnode number of reset reqests for all fog nodes
 // 			resp, err := http.Get("http://webcode.me")
 // 			if err != nil {
-// 				log.Fatal(err)
+// 				log.Printf(err)
 // 			}
 // 			defer resp.Body.Close()
 // 		}
@@ -295,7 +295,7 @@ func sendIntents(outIntents map[string]parser.IntentNoExp) {
 			go func(sockadd string, pbmsg *pb.Intent) {
 				log.Printf("Sending this intent to-- %+v\n%+v\n", sockadd, pbmsg)
 				reply := Send(sockadd, pbmsg) //handle status
-				log.Printf("%+v", reply)
+				log.Printf("Reply is %+v", reply)
 				waitgroup.Done()
 			}(sockadd, pbmsg)
 		}
@@ -379,14 +379,14 @@ type server struct {
 func StartServer(port string) {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Printf("failed to listen: %v", err)
 	} else {
 		log.Printf("\nStarted listening on %v\n", port)
 	}
 	s := grpc.NewServer()
 	pb.RegisterOrchestrateServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Printf("failed to serve: %v", err)
 	}
 }
 
@@ -395,7 +395,7 @@ func Send(address string, message *pb.Intent) string {
 	log.Printf("Connecting to %v ......", address)
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Printf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	c := pb.NewOrchestrateClient(conn)
@@ -407,7 +407,7 @@ func Send(address string, message *pb.Intent) string {
 
 	r, err := c.Deploy(context.Background(), message)
 	if err != nil {
-		log.Fatalf("could not receive: %v", err)
+		log.Printf("could not receive: %v", err)
 	}
 	return r.GetStatus()
 
