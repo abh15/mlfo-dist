@@ -18,7 +18,7 @@ numedgeperfog = int(sys.argv[2])
 
 #s0 is reserved for cloud connection
 s0 = net.addSwitch("s0")
-cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest")
+cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:7000}, publish_all_ports=True)
 cloud0.start()
 net.addLink(cloud0, s0, delay='1ms')
 

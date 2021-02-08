@@ -10,15 +10,13 @@ go v1.14
 ## Usage
 1. Clone this repo (intentdriven branch)
 
-2. Copy the mininet/topologie.py to containernet/examples directory
+2. Copy the mininet/dyntopo.py to containernet/examples directory
 
-3. `sudo python3 examples/topologie.py` 
+3. `sudo python3 examples/dyntopo.py <fognum> <numedges per fog>` 
 
-4. Start mlfo and set edge, fog and cloud delays to 2 : `sudo bash mininet/startapp.sh 2 2 2`
+4. From another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
 
-5. From another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
-
-6. To start a new experiment , reset containers : `sudo bash mininet/reset.sh`
+5. To start a new experiment , reset containers : `curl -X POST 'http://localhost:7000/cloudreset' -d numfog=2`
 
 
 ## Misc commands
@@ -28,6 +26,8 @@ go v1.14
 
 ### Build docker and push
 `bash docker/build.sh`
+
+
 
 
 

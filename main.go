@@ -63,43 +63,61 @@ func main() {
 
 	//Start REST server for intent  on port 8000
 	log.Println("Started REST server on " + intentport)
-	http.HandleFunc("/receive", httpReceiveHandler) // Handle the incoming intent
-	// http.HandleFunc("/reset", httpResetandler)      // Handle the incoming reset msg
-	// http.HandleFunc("/internalreset", httpIntResetandler)      // Handle the incoming internal reset msg
+	http.HandleFunc("/receive", httpReceiveHandler)       // Handle the incoming intent
+	http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
+	http.HandleFunc("/fogreset", httpFogResetHandler)     // Handle the incoming internal reset msg
 	log.Fatal(http.ListenAndServe(intentport, nil))
 
 	wg.Wait()
 }
 
-// //httpResetandler handles the reset request
-// func httpResetandler(w http.ResponseWriter, r *http.Request) {
+//httpCloudResetHandler handles the reset request from external user, resets cloud node and triggers fogreset
+func httpCloudResetHandler(w http.ResponseWriter, r *http.Request) {
 
-// 	err := r.ParseForm()
-// 	if err != nil {
-// 		log.Println(err.Error())
-// 		fmt.Fprintf(w, "Bad Request")
-// 	}
-// 	if sbi.CheckServer() {
-// 		sbi.DeleteFile("/fedserv")
-// 	}
-// 	if sbi.CheckFogHit() {
-// 		sbi.DeleteFile("/foghit")
-// 	}
-// 	fmt.Fprintf(w, "OK")
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err.Error())
+		fmt.Fprintf(w, "Bad Request")
+	}
+	if sbi.CheckServer() {
+		sbi.DeleteFile("/fedserv")
+	}
+	log.Println(r.Form)
 
-// }
-// //httpIntResetandler
-// func httpIntResetandler (w http.ResponseWriter, r *http.Request)  {
-// 	numnodes := r.FormValue("fog")
-// 		for i := 1; i <= numnodes; i++ {
-// 			//create numnode number of reset reqests for all fog nodes
-// 			resp, err := http.Get("http://webcode.me")
-// 			if err != nil {
-// 				log.Printf(err)
-// 			}
-// 			defer resp.Body.Close()
-// 		}
-// }
+	//send fog reset parallely to all fogs
+	var waitgroup sync.WaitGroup
+
+	numfog, _ := strconv.Atoi(r.Form.Get("numfog"))
+	waitgroup.Add(numfog)
+
+	for i := 1; i <= numfog; i++ {
+		go func(i int) {
+			//create numnode number of reset reqests for all fog nodes
+			resp, err := http.Get("http://10.0." + strconv.Itoa(i) + ".1:8000/fogreset")
+			if err != nil {
+				log.Println(err)
+			}
+			defer resp.Body.Close()
+			waitgroup.Done()
+		}(i)
+	}
+	waitgroup.Wait()
+
+	fmt.Fprintf(w, "OK")
+
+}
+
+//httpFogResetHandler deletes foghit/fedserv files to reset the state of the experiment
+func httpFogResetHandler(w http.ResponseWriter, _ *http.Request) {
+	if sbi.CheckServer() {
+		sbi.DeleteFile("/fedserv")
+	}
+	if sbi.CheckFogHit() {
+		sbi.DeleteFile("/foghit")
+	}
+	fmt.Fprintf(w, "OK")
+
+}
 
 //receiveHandler handles the yaml file sent over REST
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
