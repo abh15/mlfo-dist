@@ -25,25 +25,27 @@ numedgeperfog = int(sys.argv[2])
 s0 = net.addSwitch("s0")
 cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:7000}, publish_all_ports=True)
 cloud0.start()
-net.addLink(cloud0, s0, delay='1ms')
+net.addLink(cloud0, s0, cls=TCLink, delay='1ms', bw=0.5)
 
 
 for i in range(1,numfognodes+1):
-    sw = net.addSwitch("s"+ str(i))
-    fognode = net.addDocker("fog."+str(i), ip="10.0."+str(i)+".1", dimage="abh15/mlfo:latest", cpu_period=100000, cpu_quota=390)
+    fogsw = net.addSwitch("s"+ str(i))
+    edgesw = net.addSwitch("s"+ str(i) + str(i))
+    fognode = net.addDocker("fog."+str(i), ip="10.0."+str(i)+".1", dimage="abh15/mlfo:latest", cpu_period=50000, cpu_quota=25000)
     fognode.start()
-    net.addLink(fognode, sw, delay='1ms')
+    net.addLink(fognode, fogsw, cls=TCLink, delay='1ms',bw=0.5) #connect fog node to fog switch
+    net.addLink(s0, fogsw, cls=TCLink, delay='1ms', bw=0.5) #connect fog switch to cloud switch
+    net.addLink(fogsw, edgesw, cls=TCLink, delay='1ms', bw=0.5) #connect fog switch to edge switch
     for j in range(1, numedgeperfog+1):
         if i==1 and j==1:
             edgenode = net.addDocker("edge."+ str(i) + "." + str(j+1), ip="10.0."+ str(i) + "." + str(j+1), dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:8000}, publish_all_ports=True)
         else:
             edgenode = net.addDocker("edge."+ str(i) + "." + str(j+1), ip="10.0."+ str(i) + "." + str(j+1), dimage="abh15/mlfo:latest")
         edgenode.start()
-        net.addLink(edgenode, sw, delay='1ms')
-    net.addLink(s0, sw, cls=TCLink, delay='1ms') #sw-sw links to cloud switch
+        net.addLink(edgenode, edgesw, cls=TCLink, delay='1ms', bw=0.5) #connect edge node to edge switch
+    
 
 
-makeTerm(edge.1.2, title='title', cmd="bash -c 'ping 10.0.0.2;'")
 
 info('*** Starting network\n')
 net.start()

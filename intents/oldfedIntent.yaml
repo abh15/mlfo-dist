@@ -1,34 +1,17 @@
-distIntent: true
-type: federated
+# intentid: OperatorIntent
+# targets:
+#     - id: OSS-01
+#       operation: maximise
+#       operand: QoE
+#       constraints:
+#         maxGPULoad: 50%
 
-servers:
-  - server: mlfo-2 
 
-sources:
-  - id: mlfo-0
-    req:
-      distribution: iid
-      kind: IID
-      num: 1
-  - id: mlfo-1
-    req:
-      distribution: iid
-      kind: IID
-      num : 1
 
-models:
-  - id: 
-    req:
-      accuracy: high 
-      kind: RNN
-      size: micro
-
-sinks:
-  - id: mlfo-0
-    req:
-      kind: robot.armOptimiser
-      num: 2
-  - id: mlfo-1
-    req:
-      kind: robot.armOptimiser
-      num: 2
+# intentid: RANIntent
+# targets:
+#     - id: RAN-01
+#       operation: maximise
+#       operand: bandwidth
+#       constraints:
+#         minRSRP: -105 dBm

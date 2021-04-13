@@ -151,7 +151,7 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		/*
 			Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
 			Step 2: Resolve local pipelines
-			Step 3: Resolve foreign intents (peer + upper nodes)
+			Step 3: Resolve external intents (peer + upper nodes)
 			Step 4: Send intents over Mo-Mo
 			Step 5: Deploy local pipelines
 		*/

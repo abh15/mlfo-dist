@@ -3,9 +3,9 @@ Distributed version of MLFO based on ITU Y.3172 standard
 ## Requirements 
 Containernet v3.1
 
-go v1.14
+<!-- go v1.14
 
-[abh15/flower](https://github.com/abh15/flower)
+[abh15/flower](https://github.com/abh15/flower) -->
 
 ## Usage
 1. Clone this repo (intentdriven branch)
@@ -14,9 +14,14 @@ go v1.14
 
 3. `sudo python3 examples/dyntopo.py <fognum> <numedges per fog>` 
 
-4. From another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
+4. In another terminal: `sudo docker exec -it mn.edge.1.2 pkill -9 /app/mlfo`
+5. `sudo docker exec -it mn.edge.1.2 /app/mlfo`
 
-5. To start a new experiment , reset containers : `curl -X POST 'http://localhost:7000/cloudreset' -d numfog=2`
+Note that you may need to change eperfog and numfog parameters in the intent and set them to fognum,edgenum
+
+6. In another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
+
+7. To start a new experiment , reset containers, note that numfog should be same as in step 3 : `curl -X POST 'http://localhost:8000/cloudreset' -d numfog=2`
 
 
 ## Misc commands
@@ -28,8 +33,11 @@ go v1.14
 `bash docker/build.sh`
 
 
+### Reset mininet
+`sudo mn -c`
 
-
+### Ryu
+`ryu-manager ryu.app.simple_switch`
 
 ### Port mapping
 Flower: 
@@ -47,3 +55,7 @@ MLFO:
 
 
 export GRPC_GO_LOG_VERBOSITY_LEVEL=99;export GRPC_GO_LOG_SEVERITY_LEVEL=info
+
+sudo docker exec -it mn.fog.1 iperf -s
+
+edge.1.2 iperf -c fog.1 -p 5001 -t 5
