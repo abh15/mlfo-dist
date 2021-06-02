@@ -5,8 +5,7 @@ targets:
       operand: robots.welding.accuracy
       constraints:
         privacylevel: high
-        latency: low
 
 
 # Equivalent intent in English is-
-# Maximise imaging accuracy of robots in factory-001 while maintaining high level of privacy and using maximum 10 GPUs 
+# Maximise welding accuracy of robots in factory-001 while maintaining high level of privacy and using maximum 10 GPUs 

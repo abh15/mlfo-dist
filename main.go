@@ -117,7 +117,7 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("\nThe intent is %v\n", intent)
 
-		//Step 2: Create pipeline configuration for FL clients
+		//Step 2: Create pipeline configuration for FL clients based on intent
 		pipelineconfig := createPipelineConfig(intent)
 
 		//Step 3.1: Check of federated learning in required
@@ -127,16 +127,16 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 				outgoingIntents = generateIntents(pipelineconfig, numbots)
 			}
 		}
-		//Step 3.3: Check if local aggregation is required.
-		//Checks if the node is connected to satellite gateway. This should be done by checking compute and link BW for this edge.
+
+		//Step 3.2: Check if local aggregation is required. Checks if the node is connected to satellite gateway. This should be done by checking compute and link BW for this edge.
 		pipelineconfig["hierarchical"] = "false" //By default local agg is disabled
 		if sbi.CheckBandwidth(nodehostname) && sbi.CheckCompute(nodehostname) {
 			pipelineconfig["hierarchical"] = "true"
 		}
 
 		//Step 4:
-		replyIP := sendIntents(outgoingIntents)
-		pipelineconfig["server"] = replyIP
+		fedservIP := sendIntents(outgoingIntents)
+		pipelineconfig["server"] = fedservIP
 		pipelineconfig["numclipernode"] = strconv.Itoa(int(numbots / 10.0))
 
 		//Step 5: Deploy FL slient pipelines according to configuration
@@ -152,7 +152,6 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 //Step 2:
 //createPipelineConfig returns map of pipeline <attributes, values> e.g src,model,sink for a target in the intent
 func createPipelineConfig(in parser.Intent) map[string]string {
-	//var pipelines []map[string]string
 	var pipeline = make(map[string]string)
 
 	for _, target := range in.Targets {
@@ -161,7 +160,6 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 			pipeline["source"] = "mnist"
 			pipeline["model"] = "simple"
 			pipeline["sink"] = "robot.controller"
-			//pipelines = append(pipelines, pipeline)
 		}
 
 		//Logic: Drilling accuracy can be improved by using 'cifar' data set with 'mobilenet' model and applying it to robot controller
@@ -170,13 +168,11 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 			pipeline["source"] = "cifar"
 			pipeline["model"] = "mobilenet"
 			pipeline["sink"] = "robot.controller"
-			//pipelines = append(pipelines, pipeline)
 		}
 		//Logic: For fed agg server create pipeline for fed agg
 		if target.Operation == "aggregate.global" && target.Operand == "model.federated" {
 			pipeline["source"] = target.Constraints.Sourcekind
 			pipeline["model"] = target.Constraints.Modelkind
-			//pipelines = append(pipelines, pipeline)
 		}
 	}
 
@@ -250,21 +246,19 @@ func deploylocal(pipeline map[string]string) string {
 	if err != nil {
 		log.Println(err.Error())
 	}
-
 	if strings.Contains(nodehostname, "cloud") {
 		mutex.Lock()
 		if sbi.CheckServer() == false {
 			//if server does not exist create one
 			sbi.RegisterServer()
-			if pipeline["source"] == "mnist" {
+			if pipeline["source"] == "mnist" && pipeline["model"] == "simple" {
 				sbi.StartFedServ("10.0.0.101:5000")
 				aggserverip = "10.0.0.101:5000"
 			}
-			if pipeline["source"] == "cifar" {
+			if pipeline["source"] == "cifar" && pipeline["model"] == "mobilenet" {
 				sbi.StartFedServ("10.0.0.102:5000")
 				aggserverip = "10.0.0.102:5000"
 			}
-
 		}
 		mutex.Unlock()
 	}
@@ -287,9 +281,7 @@ func deploylocal(pipeline map[string]string) string {
 				}(i)
 			}
 			waitgroup.Wait()
-
 		}
-
 	}
 
 	return aggserverip
@@ -307,7 +299,6 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 	json.Unmarshal(intentbytes, &intent)
 	log.Printf("Received the following intent\n%v\n", intent)
 
-	//here intent can be used as normal struct
 	/*
 		Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
 		Step 2: Deploy fed agg pipelines
@@ -320,7 +311,7 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 
 	elapsed2 := time.Since(start2)
 	log.Printf("MoMo Intent took %s", elapsed2)
-	reply := status + "replied"
+	reply := status
 	return &pb.Status{Status: reply}, nil
 }
 
