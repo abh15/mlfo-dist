@@ -2,7 +2,10 @@ package sbi
 
 import (
 	"log"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
 
 //CheckServer is dummy function to checks if fed server exists
@@ -16,12 +19,13 @@ func CheckServer() bool {
 	return false
 }
 
-//LaunchServer is dummy function to launch fed server
-func LaunchServer() {
+//RegisterServer is dummy function to launch fed server
+func RegisterServer() {
 
 	log.Println("Creating agg server...")
 	f, _ := os.Create("/fedserv")
 	defer f.Close()
+
 	log.Println("...agg Server created")
 }
 
@@ -49,11 +53,46 @@ func RegisterFogHit() {
 
 }
 
-// //CreateFedMLCient simulates creating local FL client pipeline
-// func CreateFedMLCient(delay string) {
-// 	t, err := strconv.Atoi(delay)
-// 	if err != nil {
-// 		log.Println(err.Error())
-// 	}
-// 	time.Sleep(time.Duration(t) * time.Second)
-// }
+//StartFedCli sends a http POST reuest to fedcli docker to startfed clients
+func StartFedCli(fedcliaddr string, numclipernode string, source string, model string, server string) {
+
+	//e.g curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=mnist -d model=simple -d server=localhost
+
+	data := url.Values{
+		"num":    {numclipernode},
+		"source": {source},
+		"model":  {model},
+		"server": {server},
+	}
+	resp, err := http.PostForm("http://"+fedcliaddr+"/cli", data)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+}
+
+func StartFedServ(fedservaddr string) {
+	data := url.Values{}
+	resp, err := http.PostForm("http://"+fedservaddr+"/serv", data)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+}
+
+func CheckBandwidth(hostname string) bool {
+	if strings.Contains(hostname, "smo") {
+		return true
+	}
+	return false
+}
+
+func CheckCompute(hostname string) bool {
+	if strings.Contains(hostname, "smo") {
+		return true
+	}
+	return false
+}

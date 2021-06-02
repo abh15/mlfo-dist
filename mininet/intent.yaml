@@ -6,9 +6,6 @@ targets:
       constraints:
         privacylevel: high
         latency: low
-exp:
-  numfog: 2
-  eperfog: 2
 
 
 # Equivalent intent in English is-

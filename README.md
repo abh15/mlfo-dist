@@ -44,7 +44,7 @@ Flower:
 
 		5000 —> REST
 
-	    6000 —> FLWRSERVER
+	    6000 —> FLWRINTERNAL
 
 MLFO: 
 
@@ -59,3 +59,26 @@ export GRPC_GO_LOG_VERBOSITY_LEVEL=99;export GRPC_GO_LOG_SEVERITY_LEVEL=info
 sudo docker exec -it mn.fog.1 iperf -s
 
 edge.1.2 iperf -c fog.1 -p 5001 -t 5
+
+
+
+bazel run onos-local -- clean debug
+
+tools/test/bin/onos localhost
+
+onos> app activate org.onosproject.openflow
+
+onos> app activate org.onosproject.fwd
+
+sudo docker update --cpus 2 mn.fog.1
+
+curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=mnist -d model=simple -d server=localhost
+
+curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=cifar -d model=mobilenet -d server=localhost
+
+
+curl -X POST http://10.0.1.100:5000/serv
+
+
+### **************IMPORTANT**************
+`sudo docker update --cpus 1 mn.fog.1`

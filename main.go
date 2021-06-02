@@ -1,5 +1,13 @@
 package main
 
+/*
+	Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
+	Step 2: Resolve local pipelines
+	Step 3: Resolve intents
+	Step 4: Send intents over Mo-Mo
+	Step 5: Deploy local pipelines
+*/
+
 import (
 	"bytes"
 	"context"
@@ -24,8 +32,10 @@ import (
 )
 
 const (
-	intentport = ":8000"
-	momoport   = ":9000"
+	intentport   = ":8000"
+	momoport     = ":9000"
+	flowerport   = ":5000"
+	centmlfoaddr = "10.0.0.1"
 )
 
 //Global Variable
@@ -63,66 +73,25 @@ func main() {
 
 	//Start REST server for intent  on port 8000
 	log.Println("Started REST server on " + intentport)
-	http.HandleFunc("/receive", httpReceiveHandler)       // Handle the incoming intent
-	http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
-	http.HandleFunc("/fogreset", httpFogResetHandler)     // Handle the incoming internal reset msg
+	http.HandleFunc("/receive", httpReceiveHandler) // Handle the incoming intent
+	// http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
+	// http.HandleFunc("/fogreset", httpFogResetHandler)     // Handle the incoming internal reset msg
 	log.Fatal(http.ListenAndServe(intentport, nil))
 
 	wg.Wait()
 }
 
-//httpCloudResetHandler handles the reset request from external user, resets cloud node and triggers fogreset
-func httpCloudResetHandler(w http.ResponseWriter, r *http.Request) {
-
-	err := r.ParseForm()
-	if err != nil {
-		log.Println(err.Error())
-		fmt.Fprintf(w, "Bad Request")
-	}
-	if sbi.CheckServer() {
-		sbi.DeleteFile("/fedserv")
-	}
-	log.Println(r.Form)
-
-	//send fog reset parallely to all fogs
-	var waitgroup sync.WaitGroup
-
-	numfog, _ := strconv.Atoi(r.Form.Get("numfog"))
-	waitgroup.Add(numfog)
-
-	for i := 1; i <= numfog; i++ {
-		go func(i int) {
-			//create numnode number of reset reqests for all fog nodes
-			resp, err := http.Get("http://10.0." + strconv.Itoa(i) + ".1:8000/fogreset")
-			if err != nil {
-				log.Println(err)
-			}
-			defer resp.Body.Close()
-			waitgroup.Done()
-		}(i)
-	}
-	waitgroup.Wait()
-
-	fmt.Fprintf(w, "OK")
-
-}
-
-//httpFogResetHandler deletes foghit/fedserv files to reset the state of the experiment
-func httpFogResetHandler(w http.ResponseWriter, _ *http.Request) {
-	if sbi.CheckServer() {
-		sbi.DeleteFile("/fedserv")
-	}
-	if sbi.CheckFogHit() {
-		sbi.DeleteFile("/foghit")
-	}
-	fmt.Fprintf(w, "OK")
-
-}
-
+//Step 1:
 //receiveHandler handles the yaml file sent over REST
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
-	var outgoingIntents = make(map[string]parser.IntentNoExp)
+	var outgoingIntents []parser.Intent
 	yamlfile, _, err := r.FormFile("file")
+	numbots, err := strconv.Atoi(r.FormValue("num"))
+	nodehostname, err := os.Hostname()
+	if err != nil {
+		log.Println(err.Error())
+	}
+
 	if err != nil {
 		//send error as HTTP response
 		fmt.Fprintln(w, err)
@@ -148,19 +117,30 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("\nThe intent is %v\n", intent)
 
-		/*
-			Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
-			Step 2: Resolve local pipelines
-			Step 3: Resolve external intents (peer + upper nodes)
-			Step 4: Send intents over Mo-Mo
-			Step 5: Deploy local pipelines
-		*/
+		//Step 2: Create pipeline configuration for FL clients
+		pipelineconfig := createPipelineConfig(intent)
 
-		pipelines := resolvePipeline(intent)
-		outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
-		outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
-		sendIntents(outgoingIntents)
-		_ = deploylocal(pipelines)
+		//Step 3.1: Check of federated learning in required
+		for _, target := range intent.Targets {
+			if target.Constraints.Privacylevel == "high" {
+				//Step 3.2: Generate Mo-Mo intents based on the user input intent
+				outgoingIntents = generateIntents(pipelineconfig, numbots)
+			}
+		}
+		//Step 3.3: Check if local aggregation is required.
+		//Checks if the node is connected to satellite gateway. This should be done by checking compute and link BW for this edge.
+		pipelineconfig["hierarchical"] = "false" //By default local agg is disabled
+		if sbi.CheckBandwidth(nodehostname) && sbi.CheckCompute(nodehostname) {
+			pipelineconfig["hierarchical"] = "true"
+		}
+
+		//Step 4:
+		replyIP := sendIntents(outgoingIntents)
+		pipelineconfig["server"] = replyIP
+		pipelineconfig["numclipernode"] = strconv.Itoa(int(numbots / 10.0))
+
+		//Step 5: Deploy FL slient pipelines according to configuration
+		_ = deploylocal(pipelineconfig)
 
 		elapsed := time.Since(start)
 		log.Printf("HTTP Intent took %s", elapsed)
@@ -169,196 +149,156 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-//resolvePipeline returns map of pipeline <attributes, values> e.g src,model,sink
-func resolvePipeline(in parser.Intent) []map[string]string {
-	var pipelines []map[string]string
+//Step 2:
+//createPipelineConfig returns map of pipeline <attributes, values> e.g src,model,sink for a target in the intent
+func createPipelineConfig(in parser.Intent) map[string]string {
+	//var pipelines []map[string]string
 	var pipeline = make(map[string]string)
 
 	for _, target := range in.Targets {
+		//Logic: Welding accuracy can be improved by using 'mnist' data set with 'simple' model and applying it to robot controller
 		if target.Operation == "maximise" && target.Operand == "robots.welding.accuracy" {
-			//model selection logic--
-			//get robots list from sbi
-			//sensors, controller = sbi.GetAssetMetadata(target.Operand)
-			//Source data selectin logic---
-			pipeline["source"] = "asset1.image.rgb"
-			pipeline["model"] = "classifier.randomForest"
-			pipeline["sink"] = "robot.arm.controller"
-			pipelines = append(pipelines, pipeline)
+			pipeline["source"] = "mnist"
+			pipeline["model"] = "simple"
+			pipeline["sink"] = "robot.controller"
+			//pipelines = append(pipelines, pipeline)
 		}
-		if target.Operation == "aggregate" && target.Operand == "model.federated" {
-			pipeline["source"] = "edgesrc"
-			pipeline["model"] = "federated"
-			pipeline["sink"] = "edgetarg"
-			pipelines = append(pipelines, pipeline)
 
+		//Logic: Drilling accuracy can be improved by using 'cifar' data set with 'mobilenet' model and applying it to robot controller
+		if target.Operation == "maximise" && target.Operand == "robots.drilling.accuracy" {
+
+			pipeline["source"] = "cifar"
+			pipeline["model"] = "mobilenet"
+			pipeline["sink"] = "robot.controller"
+			//pipelines = append(pipelines, pipeline)
+		}
+		//Logic: For fed agg server create pipeline for fed agg
+		if target.Operation == "aggregate.global" && target.Operand == "model.federated" {
+			pipeline["source"] = target.Constraints.Sourcekind
+			pipeline["model"] = target.Constraints.Modelkind
+			//pipelines = append(pipelines, pipeline)
 		}
 	}
 
-	return pipelines
+	return pipeline
 }
 
-//resolvePeerIntents creates intents for peer MLFOs
-func resolvePeerIntents(in parser.Intent, newIntents map[string]parser.IntentNoExp) map[string]parser.IntentNoExp {
+//Step 3:
+//generateIntents resolves intents for higher level MLFOs
+func generateIntents(pipelineconfig map[string]string, numbots int) []parser.Intent {
 
-	//create intent for peer MLFOs
-	for _, target := range in.Targets {
-		if target.ID == "factory.all" {
-			//construct new intents for all factories
-			for i := 1; i < int(in.Exp.Eperfog)+1; i++ {
-				for j := 2; j < int(in.Exp.Numfog)+2; j++ {
-					var edintent parser.IntentNoExp
-					var edtargetList []parser.Target
-					var edtarget parser.Target
-					edintent.IntentID = "edgeintent-edge" + strconv.Itoa(i) + strconv.Itoa(j)
-					edtarget.ID = "edge" + strconv.Itoa(i) + "." + strconv.Itoa(j)
-					edtarget.Operation = target.Operation
-					edtarget.Operand = target.Operand
-					edtarget.Constraints = target.Constraints
-					edtargetList = append(edtargetList, edtarget)
-					edintent.Targets = edtargetList
-					newIntents["10.0."+strconv.Itoa(i)+"."+strconv.Itoa(j)] = edintent
-				}
-			}
-			//exception for host on which the intent is received
-			delete(newIntents, "10.0.1.2")
+	var fedintent parser.Intent
+	var fedtarget parser.Target
+	var fedtargetList []parser.Target
+	var genIntents []parser.Intent
+
+	fedtarget.ID = "cloud0-001"
+	fedtarget.Operation = "aggregate.global"
+	fedtarget.Operand = "model.federated"
+	fedtarget.Constraints.Modelkind = pipelineconfig["model"]
+	fedtarget.Constraints.Sourcekind = pipelineconfig["source"]
+	fedtargetList = append(fedtargetList, fedtarget)
+	fedintent.Targets = fedtargetList
+
+	if numbots == 0 {
+		fedintent.IntentID = "fedintent-000"
+		genIntents = append(genIntents, fedintent)
+	} else {
+		for i := 0; i <= numbots; i++ {
+			fedintent.IntentID = "fedintent-" + strconv.Itoa(i)
+			genIntents = append(genIntents, fedintent)
 		}
 	}
-	return newIntents
+
+	return genIntents
 }
 
-//resolveUpperIntents resolves intents for higher level MLFOs
-func resolveUpperIntents(in parser.Intent, pipe []map[string]string, newIntents map[string]parser.IntentNoExp) map[string]parser.IntentNoExp {
-
-	var faintent parser.IntentNoExp
-	var fatargetList []parser.Target
-	var fatarget1 parser.Target
-	var fatarget2 parser.Target
-
-	nodehostname, err := os.Hostname()
-	if err != nil {
-		log.Println(err.Error())
-	}
-	nodenum := strings.Split(nodehostname, ".")[1]
-
-	for _, target := range in.Targets {
-		if target.Operation == "maximise" {
-			if target.Constraints.Privacylevel == "high" {
-				if target.Constraints.Latency == "low" {
-					//If this two conditions are met, it means a hiearchical fed agg intent is required
-					faintent.IntentID = "fedintent-fog-" + nodehostname
-					if strings.Contains(nodehostname, "edge") {
-						// Target 1
-						fatarget1.ID = "fog" + nodenum
-						fatarget1.Operation = "aggregate"
-						fatarget1.Operand = "model.federated"
-						fatarget1.Constraints.Modelkind = pipe[0]["model"]
-						fatarget1.Constraints.Sourcekind = pipe[0]["source"]
-						// Target 2
-						fatarget2.ID = "fog" + nodenum
-						fatarget2.Operation = "aggregate.global"
-						fatarget2.Operand = "model.federated"
-						fatarget2.Constraints.Modelkind = pipe[0]["model"]
-						fatarget2.Constraints.Sourcekind = pipe[0]["source"]
-						fatarget2.Constraints.Minaccuracy = 90
-						fatargetList = append(fatargetList, fatarget1)
-						fatargetList = append(fatargetList, fatarget2)
-						faintent.Targets = fatargetList
-						newIntents["10.0."+nodenum+".1"] = faintent
-					}
-				}
-			}
-		} else if target.Operation == "aggregate.global" {
-			if strings.Contains(nodehostname, "fog") {
-				mutex.Lock()
-				if sbi.CheckFogHit() == false {
-					//if server does not exist create one
-					fatarget1.ID = "cloud0"
-					fatarget1.Operation = "aggregate"
-					fatarget1.Operand = "model.federated"
-					fatarget1.Constraints.Modelkind = target.Constraints.Modelkind
-					fatarget1.Constraints.Sourcekind = target.Constraints.Sourcekind
-					fatargetList = append(fatargetList, fatarget1)
-					faintent.Targets = fatargetList
-					newIntents["10.0.0.1"] = faintent
-					sbi.RegisterFogHit()
-				}
-				mutex.Unlock()
-
-			}
-		} else {
-			log.Println("No upper intents for cloud")
-		}
-
-	}
-	return newIntents
-}
-
+//Step 4:
 //sendIntents sends intents over Mo-Mo to all other MLFOs
-func sendIntents(outIntents map[string]parser.IntentNoExp) {
+func sendIntents(outIntents []parser.Intent) string {
 	var waitgroup sync.WaitGroup
-	var outpbIntents = make(map[string]*pb.Intent)
 	//Convert intent struc to pb intent struc
 	if len(outIntents) != 0 {
-		for address, intentmsg := range outIntents {
-			var pbIntent *pb.Intent
-			intentBytes, err := json.Marshal(intentmsg)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			json.Unmarshal(intentBytes, &pbIntent)
-			outpbIntents[address+momoport] = pbIntent
-		}
-		waitgroup.Add(len(outpbIntents))
-		for sockadd, pbmsg := range outpbIntents {
-			go func(sockadd string, pbmsg *pb.Intent) {
-				log.Printf("Sending this intent to-- %+v\n%+v\n", sockadd, pbmsg)
-				reply := Send(sockadd, pbmsg) //handle status
+		waitgroup.Add(len(outIntents))
+		for _, intent := range outIntents {
+			go func(intent parser.Intent) {
+				var pbIntent *pb.Intent
+				intentBytes, err := json.Marshal(intent)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				json.Unmarshal(intentBytes, &pbIntent)
+				log.Printf("Sending this intent to-- %+v\n%+v\n", centmlfoaddr, pbIntent)
+				reply := Send(centmlfoaddr, pbIntent) //handle reply
+				intent.FedServerIP = reply
 				log.Printf("Reply is %+v", reply)
 				waitgroup.Done()
-			}(sockadd, pbmsg)
+			}(intent)
 		}
 		waitgroup.Wait()
 	}
+	return outIntents[0].FedServerIP //we assume all of the intents reply with same IP, for a given model-sourcekind
 }
 
+//Step 5:
 //deploylocal deploys local pipelines in the local domain
-func deploylocal(pipelines []map[string]string) string {
+func deploylocal(pipeline map[string]string) string {
+	var waitgroup sync.WaitGroup
+	var aggserverip string
+	aggserverip = ""
 	nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
 	}
+
 	if strings.Contains(nodehostname, "cloud") {
 		mutex.Lock()
 		if sbi.CheckServer() == false {
 			//if server does not exist create one
-			sbi.LaunchServer()
-		}
-		mutex.Unlock()
-	}
-	if strings.Contains(nodehostname, "fog") {
-		mutex.Lock()
-		if sbi.CheckServer() == false {
-			//if server does not exist create one
-			sbi.LaunchServer()
-		}
-		mutex.Unlock()
-	}
-	if strings.Contains(nodehostname, "edge") {
+			sbi.RegisterServer()
+			if pipeline["source"] == "mnist" {
+				sbi.StartFedServ("10.0.0.101:5000")
+				aggserverip = "10.0.0.101:5000"
+			}
+			if pipeline["source"] == "cifar" {
+				sbi.StartFedServ("10.0.0.102:5000")
+				aggserverip = "10.0.0.102:5000"
+			}
 
-		log.Println("Local edge pipeline deployed")
-		// mutex.Lock()
-		// sbi.CreateFedMLCient(edgedelay)
-		// mutex.Unlock()
+		}
+		mutex.Unlock()
 	}
-	return nodehostname
+
+	//deploy pipelines using campus mlfo by triggering ht FL clients
+	if strings.Contains(nodehostname, "mo") {
+		nodenum := strings.Split(nodehostname, ".")[1]
+		//If hierarchical is true start local
+		if pipeline["hierarchical"] == "true" {
+			endpoint := "http://10.0." + nodenum + "100:5000/cli"
+			sbi.StartFedCli(endpoint, "1", pipeline["source"], pipeline["model"], pipeline["server"])
+
+		} else {
+			waitgroup.Add(10)
+			for i := 1; i <= 10; i++ {
+				go func(i int) {
+					endpoint := "http://" + "10.0." + nodenum + strconv.Itoa(i+10) + ":5000/cli"
+					sbi.StartFedCli(endpoint, pipeline["numclipernode"], pipeline["source"], pipeline["model"], pipeline["server"])
+					waitgroup.Done()
+				}(i)
+			}
+			waitgroup.Wait()
+
+		}
+
+	}
+
+	return aggserverip
 }
 
 //Deploy is called when a Mo-Mo message is received on MLFO server
 func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status, error) {
 	start2 := time.Now()
 
-	//newIntents has structure <intent_target_hostname, intent>. It consists of intents for peers as well as higher nodes
-	var outgoingIntents = make(map[string]parser.IntentNoExp)
 	var intent parser.Intent
 	intentbytes, err := json.Marshal(rcvdIntent)
 	if err != nil {
@@ -370,17 +310,13 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 	//here intent can be used as normal struct
 	/*
 		Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
-		Step 2: Resolve local pipelines
-		Step 3: Resolve foreign intents (peer + upper nodes)
-		Step 4: Send intents over Mo-Mo
-		Step 5: Deploy local pipelines
+		Step 2: Deploy fed agg pipelines
+		Step 3: Send fed agg server reply back to client
 	*/
 
-	pipelines := resolvePipeline(intent)
-	outgoingIntents = resolvePeerIntents(intent, outgoingIntents)
-	outgoingIntents = resolveUpperIntents(intent, pipelines, outgoingIntents)
-	sendIntents(outgoingIntents)
-	status := deploylocal(pipelines)
+	pipelineconfig := createPipelineConfig(intent)
+
+	status := deploylocal(pipelineconfig)
 
 	elapsed2 := time.Since(start2)
 	log.Printf("MoMo Intent took %s", elapsed2)

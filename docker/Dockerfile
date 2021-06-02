@@ -1,6 +1,6 @@
 FROM golang:1.15-alpine AS build_base
 
-RUN apk add --update --no-cache git bash tcpdump iperf busybox-extras iproute2 iputils
+RUN apk add --update --no-cache git bash curl tcpdump iperf busybox-extras iproute2 iputils
 
 # Set the Current Working Directory inside the container
 WORKDIR /tmp/mlfo

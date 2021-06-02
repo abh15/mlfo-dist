@@ -8,21 +8,9 @@ import (
 
 //Intent is Parent struct for input intent
 type Intent struct {
-	IntentID string `yaml:"intentID"`
-	Targets  []Target
-	Exp      Ex
-}
-
-//IntentNoExp used for mapping with pb struct
-type IntentNoExp struct {
-	IntentID string `yaml:"intentID"`
-	Targets  []Target
-}
-
-//Ex consists of parameters required for simulation experiment
-type Ex struct {
-	Eperfog int32 `yaml:"eperfog"`
-	Numfog  int32 `yaml:"numfog"`
+	IntentID    string `yaml:"intentID"`
+	Targets     []Target
+	FedServerIP string `yaml:"intentID"` //This is specific to the code and not part of general intent structure
 }
 
 //Target describes the desired actions for the target
