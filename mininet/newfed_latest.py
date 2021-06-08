@@ -15,9 +15,9 @@ net.addController(name='c0', controller=RemoteController, ip='127.0.0.1', port=6
 info('*** Adding docker containers\n')
 
 numsat = int(sys.argv[1])
-nummet = int(sys.argv[2])
-numfwa = int(sys.argv[3])
-numrobots = 10
+numfwa = int(sys.argv[2])
+nummet = int(sys.argv[3])
+numrobots = int(sys.argv[4])
 
 fserver1 = net.addDocker('fed.1', ip='10.0.0.101', dimage="abh15/flwr:latest") 
 fserver1.start()
@@ -60,9 +60,9 @@ def subtopo (start_num, end_num, delay, bw, pop_sw, prefix):
 
 subtopo(1, numsat, "15ms", 600, GSTAsw, "s")
 
-subtopo(numsat+1, numfwa, "10ms", 2000, FWAsw, "f")
+subtopo(numsat+1, (numsat+numfwa), "10ms", 2000, FWAsw, "f")
 
-subtopo(nummet+1, nummet, "5ms", 10000, METsw, "m")
+subtopo((numsat+numfwa+1), (numsat+numfwa+nummet), "5ms", 10000, METsw, "m")
 
 
 

@@ -7,21 +7,41 @@ Containernet v3.1
 
 [abh15/flower](https://github.com/abh15/flower) -->
 
+## Start ONOS
+Terminal 1
+`bazel run onos-local -- clean debug`
+
+Terminal 2
+`tools/test/bin/onos localhost`
+
+onos> `app activate org.onosproject.openflow`
+
+onos> `app activate org.onosproject.fwd`
+
+
 ## Usage
-1. Clone this repo (intentdriven branch)
+1. Clone this repo (hierFL branch). Start ONOS (see above).
 
-2. Copy the mininet/dyntopo.py to containernet/examples directory
+2. Copy the mininet/newfed_latest.py to containernet/examples directory
 
-3. `sudo python3 examples/dyntopo.py <fognum> <numedges per fog>` 
+3. `sudo python3 examples/newfed_latest.py <num_satellite_edges> <num_fwa_edges> <num_metro_edges> <num_FL_nodes_per_edge>` 
 
-4. In another terminal: `sudo docker exec -it mn.edge.1.2 pkill -9 /app/mlfo`
-5. `sudo docker exec -it mn.edge.1.2 /app/mlfo`
+`sudo python3 mininet/newfed_latest.py 2 2 2 5`
 
-Note that you may need to change eperfog and numfog parameters in the intent and set them to fognum,edgenum
+4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note that Number of FLclients per edge is set to zero. Agg will be done.
+`cd intents`
 
-6. In another terminal : `curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
+`sudo python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_edge> <mlfostatus> <flstatus> <hierflstatus>` 
 
-7. To start a new experiment , reset containers, note that numfog should be same as in step 3 : `curl -X POST 'http://localhost:8000/cloudreset' -d numfog=2`
+`sudo python3 sendintent.py 6 5 1 enabled disabled disabled`
+
+
+
+## Build docker and push to remote 
+`bash docker/build.sh`
+
+## **************IMPORTANT**************
+`sudo docker update --cpus 1 mn.fog.1`
 
 
 ## Misc commands
@@ -29,15 +49,8 @@ Note that you may need to change eperfog and numfog parameters in the intent and
 
 `protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative momo/momo.proto`
 
-### Build docker and push
-`bash docker/build.sh`
-
-
 ### Reset mininet
 `sudo mn -c`
-
-### Ryu
-`ryu-manager ryu.app.simple_switch`
 
 ### Port mapping
 Flower: 
@@ -52,7 +65,8 @@ MLFO:
 
 	  	9000 —> MLFO SERVER
 
-
+### Send intent
+`curl -v -F file=@intent.yaml 'http://localhost:8000/receive'`
 
 export GRPC_GO_LOG_VERBOSITY_LEVEL=99;export GRPC_GO_LOG_SEVERITY_LEVEL=info
 
@@ -60,15 +74,6 @@ sudo docker exec -it mn.fog.1 iperf -s
 
 edge.1.2 iperf -c fog.1 -p 5001 -t 5
 
-
-
-bazel run onos-local -- clean debug
-
-tools/test/bin/onos localhost
-
-onos> app activate org.onosproject.openflow
-
-onos> app activate org.onosproject.fwd
 
 sudo docker update --cpus 2 mn.fog.1
 
@@ -80,5 +85,3 @@ curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=cifar -d model=mobi
 curl -X POST http://10.0.1.100:5000/serv
 
 
-### **************IMPORTANT**************
-`sudo docker update --cpus 1 mn.fog.1`

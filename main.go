@@ -86,7 +86,11 @@ func main() {
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 	var outgoingIntents []parser.Intent
 	yamlfile, _, err := r.FormFile("file")
-	numbots, err := strconv.Atoi(r.FormValue("num"))
+	nodesperedge, err := strconv.Atoi(r.FormValue("nodesperedge"))
+	clipernode, err := strconv.Atoi(r.FormValue("clipernode"))
+	mlfostatus := r.FormValue("mlfostatus")
+	flstatus := r.FormValue("flstatus")
+	hierflstatus := r.FormValue("hierflstatus")
 	nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
@@ -123,24 +127,33 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		//Step 3.1: Check of federated learning in required
 		for _, target := range intent.Targets {
 			if target.Constraints.Privacylevel == "high" {
-				//Step 3.2: Generate Mo-Mo intents based on the user input intent
-				outgoingIntents = generateIntents(pipelineconfig, numbots)
+				//Step 3.2: Generate Mo-Mo intents based on the user input intent.
+				if mlfostatus == "enabled" {
+					outgoingIntents = generateIntents(pipelineconfig, (nodesperedge * clipernode), true)
+				} else {
+					outgoingIntents = generateIntents(pipelineconfig, (nodesperedge * clipernode), false)
+				}
 			}
 		}
 
 		//Step 3.2: Check if local aggregation is required. Checks if the node is connected to satellite gateway. This should be done by checking compute and link BW for this edge.
 		pipelineconfig["hierarchical"] = "false" //By default local agg is disabled
-		if sbi.CheckBandwidth(nodehostname) && sbi.CheckCompute(nodehostname) {
-			pipelineconfig["hierarchical"] = "true"
+		if hierflstatus == "enabled" {
+			if sbi.CheckBandwidth(nodehostname) && sbi.CheckCompute(nodehostname) {
+				pipelineconfig["hierarchical"] = "true"
+			}
 		}
 
 		//Step 4:
 		fedservIP := sendIntents(outgoingIntents)
 		pipelineconfig["server"] = fedservIP
-		pipelineconfig["numclipernode"] = strconv.Itoa(int(numbots / 10.0))
+		pipelineconfig["numclipernode"] = strconv.Itoa(clipernode)
+		pipelineconfig["nodesperedge"] = strconv.Itoa(nodesperedge)
 
-		//Step 5: Deploy FL slient pipelines according to configuration
-		_ = deploylocal(pipelineconfig)
+		if flstatus == "enabled" {
+			//Step 5: Deploy FL client pipelines according to configuration
+			_ = deploylocal(pipelineconfig)
+		}
 
 		elapsed := time.Since(start)
 		log.Printf("HTTP Intent took %s", elapsed)
@@ -180,8 +193,9 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 }
 
 //Step 3:
-//generateIntents resolves intents for higher level MLFOs
-func generateIntents(pipelineconfig map[string]string, numbots int) []parser.Intent {
+//generateIntents resolves intents for higher level MLFOs. If mlfo is enabled it will generate only one intent.
+//If disabled it will generate intents equal to total number of FL clients
+func generateIntents(pipelineconfig map[string]string, totalflclients int, mlfoenabled bool) []parser.Intent {
 
 	var fedintent parser.Intent
 	var fedtarget parser.Target
@@ -196,11 +210,11 @@ func generateIntents(pipelineconfig map[string]string, numbots int) []parser.Int
 	fedtargetList = append(fedtargetList, fedtarget)
 	fedintent.Targets = fedtargetList
 
-	if numbots == 0 {
+	if mlfoenabled {
 		fedintent.IntentID = "fedintent-000"
 		genIntents = append(genIntents, fedintent)
 	} else {
-		for i := 0; i <= numbots; i++ {
+		for i := 0; i <= totalflclients; i++ {
 			fedintent.IntentID = "fedintent-" + strconv.Itoa(i)
 			genIntents = append(genIntents, fedintent)
 		}
@@ -272,8 +286,9 @@ func deploylocal(pipeline map[string]string) string {
 			sbi.StartFedCli(endpoint, "1", pipeline["source"], pipeline["model"], pipeline["server"])
 
 		} else {
-			waitgroup.Add(10)
-			for i := 1; i <= 10; i++ {
+			numberofnodes, _ := strconv.Atoi(pipeline["nodesperedge"])
+			waitgroup.Add(numberofnodes)
+			for i := 1; i <= numberofnodes; i++ {
 				go func(i int) {
 					endpoint := "http://" + "10.0." + nodenum + strconv.Itoa(i+10) + ":5000/cli"
 					sbi.StartFedCli(endpoint, pipeline["numclipernode"], pipeline["source"], pipeline["model"], pipeline["server"])

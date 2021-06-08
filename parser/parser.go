@@ -10,7 +10,7 @@ import (
 type Intent struct {
 	IntentID    string `yaml:"intentID"`
 	Targets     []Target
-	FedServerIP string `yaml:"intentID"` //This is specific to the code and not part of general intent structure
+	FedServerIP string `yaml:"fedserverip"` //This is specific to the code and not part of general intent structure
 }
 
 //Target describes the desired actions for the target
