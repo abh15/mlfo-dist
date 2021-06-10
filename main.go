@@ -32,30 +32,24 @@ import (
 )
 
 const (
+	flowerport   = ":6000"
 	intentport   = ":8000"
-	momoport     = ":9000"
-	flowerport   = ":5000"
-	centmlfoaddr = "10.0.0.1"
+	mlfoport     = ":9000"
+	centmlfoaddr = "10.0.0.1" + mlfoport
 )
 
 //Global Variable
 var mutex = &sync.Mutex{}
 
 func main() {
-	//Handle graceful exit
+	//If our server crashes delete files which indicate created fed servers
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	go func() {
 		sig := <-gracefulStop
-		fmt.Printf("caught sig: %+v", sig) //add if check hier
-		if sbi.CheckServer() {
-			sbi.DeleteFile("/fedserv")
-		}
-		if sbi.CheckFogHit() {
-			sbi.DeleteFile("/foghit")
-		}
-
+		fmt.Printf("caught sig: %+v", sig)
+		sbi.ResetServer()
 		// fmt.Println("Wait for 2 second to finish server deletion")
 		// time.Sleep(2 * time.Second)
 		os.Exit(0)
@@ -67,18 +61,21 @@ func main() {
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	go func() {
-		StartServer(momoport)
+		StartServer(mlfoport)
 		wg.Done()
 	}()
 
 	//Start REST server for intent  on port 8000
 	log.Println("Started REST server on " + intentport)
-	http.HandleFunc("/receive", httpReceiveHandler) // Handle the incoming intent
-	// http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
-	// http.HandleFunc("/fogreset", httpFogResetHandler)     // Handle the incoming internal reset msg
+	http.HandleFunc("/receive", httpReceiveHandler)       // Handle the incoming intent
+	http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
 	log.Fatal(http.ListenAndServe(intentport, nil))
 
 	wg.Wait()
+}
+
+func httpCloudResetHandler(w http.ResponseWriter, r *http.Request) {
+	sbi.ResetServer()
 }
 
 //Step 1:
@@ -227,6 +224,7 @@ func generateIntents(pipelineconfig map[string]string, totalflclients int, mlfoe
 //sendIntents sends intents over Mo-Mo to all other MLFOs
 func sendIntents(outIntents []parser.Intent) string {
 	var waitgroup sync.WaitGroup
+	var reply string
 	//Convert intent struc to pb intent struc
 	if len(outIntents) != 0 {
 		waitgroup.Add(len(outIntents))
@@ -239,15 +237,14 @@ func sendIntents(outIntents []parser.Intent) string {
 				}
 				json.Unmarshal(intentBytes, &pbIntent)
 				log.Printf("Sending this intent to-- %+v\n%+v\n", centmlfoaddr, pbIntent)
-				reply := Send(centmlfoaddr, pbIntent) //handle reply
-				intent.FedServerIP = reply
+				reply = Send(centmlfoaddr, pbIntent) //handle reply
 				log.Printf("Reply is %+v", reply)
 				waitgroup.Done()
 			}(intent)
 		}
 		waitgroup.Wait()
 	}
-	return outIntents[0].FedServerIP //we assume all of the intents reply with same IP, for a given model-sourcekind
+	return reply //we assume all of the intents reply with same IP, for a given model-sourcekind
 }
 
 //Step 5:
@@ -262,17 +259,21 @@ func deploylocal(pipeline map[string]string) string {
 	}
 	if strings.Contains(nodehostname, "cloud") {
 		mutex.Lock()
-		if sbi.CheckServer() == false {
-			//if server does not exist create one
-			sbi.RegisterServer()
-			if pipeline["source"] == "mnist" && pipeline["model"] == "simple" {
-				sbi.StartFedServ("10.0.0.101:5000")
-				aggserverip = "10.0.0.101:5000"
+		//Check if agg server of this type exists. If not then create one
+		if pipeline["source"] == "mnist" && pipeline["model"] == "simple" {
+			if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
+				sbi.RegisterServer(pipeline["source"] + pipeline["model"])
+				sbi.StartFedServ("10.0.0.101")
 			}
-			if pipeline["source"] == "cifar" && pipeline["model"] == "mobilenet" {
-				sbi.StartFedServ("10.0.0.102:5000")
-				aggserverip = "10.0.0.102:5000"
+			aggserverip = "10.0.0.101" + flowerport
+		}
+		//Check if agg server of this type exists. If not then create one
+		if pipeline["source"] == "cifar" && pipeline["model"] == "mobilenet" {
+			if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
+				sbi.RegisterServer(pipeline["source"] + pipeline["model"])
+				sbi.StartFedServ("10.0.0.102")
 			}
+			aggserverip = "10.0.0.102" + flowerport
 		}
 		mutex.Unlock()
 	}
@@ -282,7 +283,7 @@ func deploylocal(pipeline map[string]string) string {
 		nodenum := strings.Split(nodehostname, ".")[1]
 		//If hierarchical is true start local
 		if pipeline["hierarchical"] == "true" {
-			endpoint := "http://10.0." + nodenum + "100:5000/cli"
+			endpoint := "10.0." + nodenum + ".100"
 			sbi.StartFedCli(endpoint, "1", pipeline["source"], pipeline["model"], pipeline["server"])
 
 		} else {
@@ -290,7 +291,7 @@ func deploylocal(pipeline map[string]string) string {
 			waitgroup.Add(numberofnodes)
 			for i := 1; i <= numberofnodes; i++ {
 				go func(i int) {
-					endpoint := "http://" + "10.0." + nodenum + strconv.Itoa(i+10) + ":5000/cli"
+					endpoint := "10.0." + nodenum + "." + strconv.Itoa(i+10)
 					sbi.StartFedCli(endpoint, pipeline["numclipernode"], pipeline["source"], pipeline["model"], pipeline["server"])
 					waitgroup.Done()
 				}(i)

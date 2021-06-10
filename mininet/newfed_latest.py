@@ -23,7 +23,7 @@ fserver1 = net.addDocker('fed.1', ip='10.0.0.101', dimage="abh15/flwr:latest")
 fserver1.start()
 fserver2 = net.addDocker('fed.2', ip='10.0.0.102', dimage="abh15/flwr:latest") 
 fserver2.start()
-cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest") 
+cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:8999}, publish_all_ports=True) 
 cloud0.start()
 
 aggsw = net.addSwitch("aggs0",cls=OVSSwitch,protocols="OpenFlow13")
@@ -51,7 +51,7 @@ def subtopo (start_num, end_num, delay, bw, pop_sw, prefix):
         flocalagg = net.addDocker("fla."+ str(i), ip="10.0."+ str(i) + ".100", dimage="abh15/flwr:latest")
         flocalagg.start()
         net.addLink(flocalagg, campussw, cls=TCLink, delay=delay, bw=bw)
-        for j in range(1, numrobots):
+        for j in range(1, numrobots+1):
             fclient = net.addDocker("fc."+ str(i) + str(j+10), ip="10.0."+ str(i) + "." + str(j+10), dimage="abh15/flwr:latest") 
             fclient.start()
             net.addLink(fclient, campussw, cls=TCLink, delay=delay, bw=bw) 

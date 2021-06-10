@@ -8,48 +8,41 @@ import (
 	"strings"
 )
 
+const (
+	flaskport = ":5000"
+)
+
 //CheckServer is dummy function to checks if fed server exists
-func CheckServer() bool {
+func CheckServer(serverid string) bool {
 	//TODO: add search delay
-	if _, err := os.Stat("/fedserv"); err == nil {
+	if _, err := os.Stat("/" + serverid); err == nil {
 		//Server exists
-		log.Println("Agg server already present")
+		log.Printf("Agg server of type %v already present", serverid)
 		return true
 	}
 	return false
 }
 
 //RegisterServer is dummy function to launch fed server
-func RegisterServer() {
+func RegisterServer(serverid string) {
 
-	log.Println("Creating agg server...")
-	f, _ := os.Create("/fedserv")
+	log.Printf("Creating agg server %v..", serverid)
+	f, _ := os.Create("/" + serverid)
 	defer f.Close()
 
 	log.Println("...agg Server created")
 }
 
 //DeleteFile deletes fedserv/foghit file
-func DeleteFile(path string) {
-	err := os.Remove(path)
+func ResetServer() {
+	err := os.Remove("/mnistsimple")
 	if err != nil {
 		log.Println(err.Error())
 	}
-}
-
-//CheckFogHit checks if the fog has been hit i.e a intent has been incident
-func CheckFogHit() bool {
-	if _, err := os.Stat("/foghit"); err == nil {
-		log.Println("Fog is hit")
-		return true
+	err = os.Remove("/cifarmobilenet")
+	if err != nil {
+		log.Println(err.Error())
 	}
-	return false
-}
-
-//RegisterFogHit writes a file to know if a intent has hit the fog
-func RegisterFogHit() {
-	f, _ := os.Create("/foghit")
-	defer f.Close()
 
 }
 
@@ -64,7 +57,9 @@ func StartFedCli(fedcliaddr string, numclipernode string, source string, model s
 		"model":  {model},
 		"server": {server},
 	}
-	resp, err := http.PostForm("http://"+fedcliaddr+"/cli", data)
+	resp, err := http.PostForm("http://"+fedcliaddr+flaskport+"/cli", data)
+
+	log.Printf("Sent :\n%v\n", data)
 
 	if err != nil {
 		log.Fatal(err)
@@ -75,7 +70,7 @@ func StartFedCli(fedcliaddr string, numclipernode string, source string, model s
 
 func StartFedServ(fedservaddr string) {
 	data := url.Values{}
-	resp, err := http.PostForm("http://"+fedservaddr+"/serv", data)
+	resp, err := http.PostForm("http://"+fedservaddr+flaskport+"/serv", data)
 
 	if err != nil {
 		log.Fatal(err)

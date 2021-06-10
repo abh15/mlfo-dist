@@ -8,6 +8,9 @@ Containernet v3.1
 [abh15/flower](https://github.com/abh15/flower) -->
 
 ## Start ONOS
+
+`cd onos`
+
 Terminal 1
 `bazel run onos-local -- clean debug`
 
@@ -18,27 +21,34 @@ onos> `app activate org.onosproject.openflow`
 
 onos> `app activate org.onosproject.fwd`
 
+`ctl^ + D`
+
 
 ## Usage
 1. Clone this repo (hierFL branch). Start ONOS (see above).
 
 2. Copy the mininet/newfed_latest.py to containernet/examples directory
 
-3. `sudo python3 examples/newfed_latest.py <num_satellite_edges> <num_fwa_edges> <num_metro_edges> <num_FL_nodes_per_edge>` 
+3. `cd containernet`
 
-`sudo python3 mininet/newfed_latest.py 2 2 2 5`
+	`sudo python3 examples/newfed_latest.py <num_satellite_edges> <num_fwa_edges> <num_metro_edges> <num_FL_nodes_per_edge>` 
+
+	`sudo python3 examples/newfed_latest.py 2 2 2 2`
 
 4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note that Number of FLclients per edge is set to zero. Agg will be done.
 `cd intents`
 
-`sudo python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_edge> <mlfostatus> <flstatus> <hierflstatus>` 
+`python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_edge> <mlfostatus> <flstatus> <hierflstatus>` 
 
-`sudo python3 sendintent.py 6 5 1 enabled disabled disabled`
+`python3 sendintent.py 6 2 1 enabled disabled disabled`
 
 
 
 ## Build docker and push to remote 
-`bash docker/build.sh`
+`sudo bash docker/build.sh`
+
+## Reset federated learning server on cloud
+`curl -X 'http://10.66.2.142:8999/cloudreset'`
 
 ## **************IMPORTANT**************
 `sudo docker update --cpus 1 mn.fog.1`

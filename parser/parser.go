@@ -8,9 +8,9 @@ import (
 
 //Intent is Parent struct for input intent
 type Intent struct {
-	IntentID    string `yaml:"intentID"`
-	Targets     []Target
-	FedServerIP string `yaml:"fedserverip"` //This is specific to the code and not part of general intent structure
+	IntentID string `yaml:"intentID"`
+	Targets  []Target
+	//FedServerIP string `yaml:"fedserverip"` //This is specific to the code and not part of general intent structure
 }
 
 //Target describes the desired actions for the target
