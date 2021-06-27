@@ -43,7 +43,7 @@ for i in range(1,numfognodes+1):
     net.addLink(s0, sw, cls=TCLink, delay='1ms') #sw-sw links to cloud switch
 
 
-makeTerm(edge.1.2, title='title', cmd="bash -c 'ping 10.0.0.2;'")
+#makeTerm(edge.1.2, title='title', cmd="bash -c 'ping 10.0.0.2;'")
 
 info('*** Starting network\n')
 net.start()

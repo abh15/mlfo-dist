@@ -38,10 +38,11 @@ onos> `app activate org.onosproject.fwd`
 4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note that Number of FLclients per edge is set to zero. Agg will be done.
 `cd intents`
 
-`python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_edge> <mlfostatus> <flstatus> <hierflstatus>` 
+`python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_FL_node> <mlfostatus> <flstatus> <hierflstatus>` 
 
 `python3 sendintent.py 6 2 1 enabled disabled disabled`
 
+Note that total number of intents send over one Mo-Mo pair will be <num_FL_nodes_per_edge> x <number_of_FL_clients_per_FL_node> (2*1)
 
 
 ## Build docker and push to remote 
@@ -95,3 +96,8 @@ curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=cifar -d model=mobi
 curl -X POST http://10.0.1.100:5000/serv
 
 
+sudo docker exec -it mn.cloud.0 iperf -s
+
+sudo docker exec -it mn.smo.1 /bin/bash
+
+iperf -c 10.0.0.1 -p 5001 -t 5
