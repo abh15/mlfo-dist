@@ -211,7 +211,7 @@ func generateIntents(pipelineconfig map[string]string, totalflclients int, mlfoe
 		fedintent.IntentID = "fedintent-000"
 		genIntents = append(genIntents, fedintent)
 	} else {
-		for i := 0; i <= totalflclients; i++ {
+		for i := 0; i < totalflclients; i++ {
 			fedintent.IntentID = "fedintent-" + strconv.Itoa(i)
 			genIntents = append(genIntents, fedintent)
 		}

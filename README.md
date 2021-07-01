@@ -47,6 +47,7 @@ Note that total number of intents send over one Mo-Mo pair will be <num_FL_nodes
 5. To send hybrid 50/50 intent:
 
 `python3 hybrid_sendintent.py <total number of edges(sat+fwa+met)>`
+
 `python3 hybrid_sendintent.py 12`
 
 
