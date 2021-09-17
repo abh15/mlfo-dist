@@ -1,23 +1,25 @@
 # Installation of cadvisor + prometheus + grafana
-1. Install cadvisor (port 8080)
+1. Install cadvisor (port 7070)
 
-`sudo docker run \
-  --volume=/:/rootfs:ro \
-  --volume=/var/run:/var/run:ro \
-  --volume=/sys:/sys:ro \
-  --volume=/var/lib/docker/:/var/lib/docker:ro \
-  --volume=/dev/disk/:/dev/disk:ro \
-  --publish=8080:8080 \
-  --detach=true \
-  --name=cadvisor \
+`sudo docker run 
+  --volume=/:/rootfs:ro 
+  --volume=/var/run:/var/run:ro 
+  --volume=/sys:/sys:ro
+  --volume=/var/lib/docker/:/var/lib/docker:ro
+  --volume=/dev/disk/:/dev/disk:ro 
+  --publish=7070:8080 
+  --detach=true
+  --name=cadvisor
+  --privileged
+  --device=/dev/kmsg 
   gcr.io/google-containers/cadvisor:latest `
 
 
 2. Copy the config/prometheus.yml file to correct path (/home/abhishek/). Install prometheus (port 9090)
 
-`docker run \
-    -p 9090:9090 \
-    -v /home/abhishek/prometheus.yml:/etc/prometheus/prometheus.yml \
+`sudo docker run
+    -p 9090:9090
+    -v /home/abhishek/prometheus.yml:/etc/prometheus/prometheus.yml
     prom/prometheus&
 `
 

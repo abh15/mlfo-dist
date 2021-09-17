@@ -46,9 +46,9 @@ Note that total number of intents send over one Mo-Mo pair will be <num_FL_nodes
 
 5. To send hybrid 50/50 intent:
 
-`python3 hybrid_sendintent.py <total number of edges(sat+fwa+met)>`
+`python3 hybrid_sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_FL_node> ` 
 
-`python3 hybrid_sendintent.py 12`
+`python3 hybrid_sendintent.py 12 10 10`
 
 
 ## Build docker and push to remote 

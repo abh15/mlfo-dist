@@ -32,11 +32,11 @@ FWAsw = net.addSwitch("fwas0",cls=OVSSwitch,protocols="OpenFlow13")
 METsw = net.addSwitch("mets0",cls=OVSSwitch,protocols="OpenFlow13")
 
 
-net.addLink(cloud0, aggsw, cls=TCLink, delay="15ms", bw=600)  
-net.addLink(fserver1)
-net.addLink(fserver2)
+net.addLink(cloud0, aggsw)  
+net.addLink(fserver1, aggsw)
+net.addLink(fserver2, aggsw)
 
-net.addLink(GSTAsw, aggsw, cls=TCLink, delay="15ms", bw=600)  
+net.addLink(GSTAsw, aggsw)  
 net.addLink(FWAsw, aggsw)
 net.addLink(METsw, aggsw)
 
@@ -46,7 +46,7 @@ def subtopo (start_num, end_num, delay, bw, pop_sw, prefix):
         edgesw = net.addSwitch("s"+ str(i),cls=OVSSwitch,protocols="OpenFlow13")
         mlfonode = net.addDocker(prefix+"mo."+str(i), ip="10.0."+str(i)+".1", dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:intentport}, publish_all_ports=True) 
         mlfonode.start()
-        net.addLink(mlfonode, edgesw, cls=TCLink, delay="15ms", bw=600)
+        net.addLink(mlfonode, edgesw)
         flocalagg = net.addDocker("fla."+ str(i), ip="10.0."+ str(i) + ".100", dimage="abh15/flwr:latest")
         flocalagg.start()
         net.addLink(flocalagg, edgesw)
@@ -54,8 +54,7 @@ def subtopo (start_num, end_num, delay, bw, pop_sw, prefix):
             fclient = net.addDocker("fc."+ str(i) + str(j+10), ip="10.0."+ str(i) + "." + str(j+10), dimage="abh15/flwr:latest") 
             fclient.start()
             net.addLink(fclient, edgesw) 
-        net.addLink(edgesw, pop_sw, cls=TCLink, delay=delay, bw=bw) 
-
+        net.addLink(edgesw, pop_sw, cls=TCLink, delay=delay, bw=bw)
  
 
 subtopo(1, numsat, "15ms", 600, GSTAsw, "s")

@@ -9,8 +9,8 @@ async def getwithmlfo(url, session):
     try:
         payload = FormData()
         payload.add_field('file',  open('intent.yaml', 'rb'))
-        payload.add_field('nodesperedge', "3")
-        payload.add_field('clipernode', "3")
+        payload.add_field('nodesperedge', sys.argv[2])
+        payload.add_field('clipernode', sys.argv[3])
         payload.add_field('mlfostatus', "enabled")
         payload.add_field('flstatus', "disabled")
         payload.add_field('hierflstatus', "disabled")
@@ -26,8 +26,8 @@ async def getwomlfo(url, session):
     try:
         payload = FormData()
         payload.add_field('file',  open('intent.yaml', 'rb'))
-        payload.add_field('nodesperedge', "3")
-        payload.add_field('clipernode', "3")
+        payload.add_field('nodesperedge', sys.argv[2])
+        payload.add_field('clipernode', sys.argv[3])
         payload.add_field('mlfostatus', "disabled")
         payload.add_field('flstatus', "disabled")
         payload.add_field('hierflstatus', "disabled")
@@ -64,8 +64,6 @@ for i in range(1,num+1):
     if i%(num/6)==0:
         flag= not flag
     
-print(urlswithmlfo)
-print(urlswomlfo)
 
 
 
