@@ -1,0 +1,3 @@
+[console_scripts]
+prometheus_ss_exporter = prometheus_ss_exporter.__init__:main
+

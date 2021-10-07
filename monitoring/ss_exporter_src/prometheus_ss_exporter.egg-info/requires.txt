@@ -1,0 +1,4 @@
+pyroute2==0.5.10
+prometheus-client
+PyYAML==5.1.1
+psutil

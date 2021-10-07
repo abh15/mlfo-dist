@@ -1,35 +1,31 @@
 #!/usr/bin/python3
-import asyncio
-import aiohttp
+import requests
 import sys
-from aiohttp import FormData
+import time
 
-async def get(url, session):
-    try:
-        payload = FormData()
-        payload.add_field('file',  open('intent.yaml', 'rb'))
-        payload.add_field('nodesperedge', sys.argv[2])
-        payload.add_field('clipernode', sys.argv[3])
-        payload.add_field('mlfostatus', sys.argv[4])
-        payload.add_field('flstatus', sys.argv[5])
-        payload.add_field('hierflstatus', sys.argv[6])
-        async with session.post(url, data=payload) as resp:
-            print(resp.status)
-            print(await resp.text())
-    except Exception as e:
-        print("Unable to get url {} due to {}.".format(url, e.__class__))
+# IP range 10.0.1.10 to 10.0.1.59
+
+timegap=5
+cohortdistr = [10]
+intentdist=['intent.yaml']#, 'intent.yaml', 'intent.yaml', 'intent.yaml', 'intent.yaml']
+
+def send(intentfile, ipstart, cohortsize):
+    files = {'file': open(intentfile, 'rb')}
+    payload = {'ipstart': ipstart, "cohortsize" : cohortsize}
+    r = requests.post('http://10.66.2.142:8001/receive', files=files, data=payload)
+       
+
+def main():
+    octtraker = 10
+    if len(cohortdistr)!= len(intentdist):
+        print("Unequal distributions. Please check input")
+        sys.exit()
+    for i in range(len(cohortdistr)):
+        cohort= cohortdistr[i]
+        intent= intentdist[i]
+        send(intent, octtraker, cohort)
+        octtraker=octtraker+cohort
+        time.sleep(timegap)
 
 
-async def main(urls):
-    async with aiohttp.ClientSession() as session:
-        ret = await asyncio.gather(*[get(url, session) for url in urls])
-    print("Finalized all. Return is a list of len {} outputs.".format(len(ret)))
-
-urls= []
-
-for i in range(1,(int(sys.argv[1])+1)):
-    port = 8000+i
-    urls.append("http://10.66.2.142:"+ str(port) + "/receive")
-
-# print (urls)
-asyncio.run(main(urls))
+main()

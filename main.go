@@ -32,6 +32,7 @@ import (
 )
 
 const (
+	//flaskport = ":5000"
 	flowerport   = ":6000"
 	intentport   = ":8000"
 	mlfoport     = ":9000"
@@ -40,8 +41,10 @@ const (
 
 //Global Variable
 var mutex = &sync.Mutex{}
+var fedservoctet int = 100
 
 func main() {
+	fedservoctet = 100
 	//If our server crashes delete files which indicate created fed servers
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
@@ -83,12 +86,9 @@ func httpCloudResetHandler(w http.ResponseWriter, r *http.Request) {
 func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 	var outgoingIntents []parser.Intent
 	yamlfile, _, err := r.FormFile("file")
-	nodesperedge, err := strconv.Atoi(r.FormValue("nodesperedge"))
-	clipernode, err := strconv.Atoi(r.FormValue("clipernode"))
-	mlfostatus := r.FormValue("mlfostatus")
-	flstatus := r.FormValue("flstatus")
-	hierflstatus := r.FormValue("hierflstatus")
-	nodehostname, err := os.Hostname()
+	ipstart, _ := strconv.Atoi(r.FormValue("ipstart"))
+	cohortsize, _ := strconv.Atoi(r.FormValue("cohortsize"))
+	//nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -124,33 +124,22 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		//Step 3.1: Check of federated learning in required
 		for _, target := range intent.Targets {
 			if target.Constraints.Privacylevel == "high" {
-				//Step 3.2: Generate Mo-Mo intents based on the user input intent.
-				if mlfostatus == "enabled" {
-					outgoingIntents = generateIntents(pipelineconfig, (nodesperedge * clipernode), true)
-				} else {
-					outgoingIntents = generateIntents(pipelineconfig, (nodesperedge * clipernode), false)
-				}
-			}
-		}
-
-		//Step 3.2: Check if local aggregation is required. Checks if the node is connected to satellite gateway. This should be done by checking compute and link BW for this edge.
-		pipelineconfig["hierarchical"] = "false" //By default local agg is disabled
-		if hierflstatus == "enabled" {
-			if sbi.CheckBandwidth(nodehostname) && sbi.CheckCompute(nodehostname) {
-				pipelineconfig["hierarchical"] = "true"
+				//Step 3.2: Generate Mo-Mo intent based on the user input intent.
+				outgoingIntents = generateIntents(pipelineconfig)
 			}
 		}
 
 		//Step 4:
 		fedservIP := sendIntents(outgoingIntents)
 		pipelineconfig["server"] = fedservIP
-		pipelineconfig["numclipernode"] = strconv.Itoa(clipernode)
-		pipelineconfig["nodesperedge"] = strconv.Itoa(nodesperedge)
 
-		if flstatus == "enabled" {
-			//Step 5: Deploy FL client pipelines according to configuration
-			_ = deploylocal(pipelineconfig)
+		//Step 5: Deploy FL client pipelines according to configuration
+		var iplist []string
+		for i := ipstart; i < cohortsize+ipstart; i++ {
+			ipaddr := "10.0.1." + strconv.Itoa(i)
+			iplist = append(iplist, ipaddr)
 		}
+		_ = deploylocal(pipelineconfig, iplist)
 
 		elapsed := time.Since(start)
 		log.Printf("HTTP Intent took %s", elapsed)
@@ -167,6 +156,7 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 	for _, target := range in.Targets {
 		//Logic: Welding accuracy can be improved by using 'mnist' data set with 'simple' model and applying it to robot controller
 		if target.Operation == "maximise" && target.Operand == "robots.welding.accuracy" {
+
 			pipeline["source"] = "mnist"
 			pipeline["model"] = "simple"
 			pipeline["sink"] = "robot.controller"
@@ -192,7 +182,7 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 //Step 3:
 //generateIntents resolves intents for higher level MLFOs. If mlfo is enabled it will generate only one intent.
 //If disabled it will generate intents equal to total number of FL clients
-func generateIntents(pipelineconfig map[string]string, totalflclients int, mlfoenabled bool) []parser.Intent {
+func generateIntents(pipelineconfig map[string]string) []parser.Intent {
 
 	var fedintent parser.Intent
 	var fedtarget parser.Target
@@ -207,15 +197,8 @@ func generateIntents(pipelineconfig map[string]string, totalflclients int, mlfoe
 	fedtargetList = append(fedtargetList, fedtarget)
 	fedintent.Targets = fedtargetList
 
-	if mlfoenabled {
-		fedintent.IntentID = "fedintent-000"
-		genIntents = append(genIntents, fedintent)
-	} else {
-		for i := 0; i < totalflclients; i++ {
-			fedintent.IntentID = "fedintent-" + strconv.Itoa(i)
-			genIntents = append(genIntents, fedintent)
-		}
-	}
+	fedintent.IntentID = "fedintent-000"
+	genIntents = append(genIntents, fedintent)
 
 	return genIntents
 }
@@ -249,57 +232,53 @@ func sendIntents(outIntents []parser.Intent) string {
 
 //Step 5:
 //deploylocal deploys local pipelines in the local domain
-func deploylocal(pipeline map[string]string) string {
+func deploylocal(pipeline map[string]string, addrlist []string) string {
 	var waitgroup sync.WaitGroup
-	var aggserverip string
-	aggserverip = ""
+	var aggserverip string = ""
+	var fedservip string = ""
 	nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
 	}
 	if strings.Contains(nodehostname, "cloud") {
 		mutex.Lock()
-		//Check if agg server of this type exists. If not then create one
-		if pipeline["source"] == "mnist" && pipeline["model"] == "simple" {
-			if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
-				sbi.RegisterServer(pipeline["source"] + pipeline["model"])
-				sbi.StartFedServ("10.0.0.101")
-			}
-			aggserverip = "10.0.0.101" + flowerport
-		}
-		//Check if agg server of this type exists. If not then create one
-		if pipeline["source"] == "cifar" && pipeline["model"] == "mobilenet" {
-			if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
-				sbi.RegisterServer(pipeline["source"] + pipeline["model"])
-				sbi.StartFedServ("10.0.0.102")
-			}
-			aggserverip = "10.0.0.102" + flowerport
-		}
+		// //Check if agg server of this type exists. If not then create one
+		// if pipeline["source"] == "mnist" && pipeline["model"] == "simple" {
+		// 	if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
+		// 		sbi.RegisterServer(pipeline["source"] + pipeline["model"])
+		// 		sbi.StartFedServ("10.0.0.101")
+		// 	}
+		// 	aggserverip = "10.0.0.101" + flowerport
+		// }
+		// //Check if agg server of this type exists. If not then create one
+		// if pipeline["source"] == "cifar" && pipeline["model"] == "mobilenet" {
+		// 	if sbi.CheckServer(pipeline["source"]+pipeline["model"]) == false {
+		// 		sbi.RegisterServer(pipeline["source"] + pipeline["model"])
+		// 		sbi.StartFedServ("10.0.0.102")
+		// 	}
+		// 	aggserverip = "10.0.0.102" + flowerport
+		// }
+		fedservoctet = fedservoctet + 1
+		fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
+		sbi.StartFedServ(fedservip)
+		aggserverip = fedservip + flowerport
 		mutex.Unlock()
 	}
 
 	//deploy pipelines using campus mlfo by triggering ht FL clients
 	if strings.Contains(nodehostname, "mo") {
-		nodenum := strings.Split(nodehostname, ".")[1]
-		//If hierarchical is true start local
-		if pipeline["hierarchical"] == "true" {
-			endpoint := "10.0." + nodenum + ".100"
-			sbi.StartFedCli(endpoint, "1", pipeline["source"], pipeline["model"], pipeline["server"])
-
-		} else {
-			numberofnodes, _ := strconv.Atoi(pipeline["nodesperedge"])
-			waitgroup.Add(numberofnodes)
-			for i := 1; i <= numberofnodes; i++ {
-				go func(i int) {
-					endpoint := "10.0." + nodenum + "." + strconv.Itoa(i+10)
-					sbi.StartFedCli(endpoint, pipeline["numclipernode"], pipeline["source"], pipeline["model"], pipeline["server"])
-					waitgroup.Done()
-				}(i)
-			}
-			waitgroup.Wait()
+		//nodenum := strings.Split(nodehostname, ".")[1]
+		numclipercohort := len(addrlist)
+		log.Printf("Addrlist ist %+v", addrlist)
+		waitgroup.Add(numclipercohort)
+		for i := 0; i < numclipercohort; i++ {
+			go func(i int) {
+				sbi.StartFedCli(addrlist[i], pipeline["source"], pipeline["model"], pipeline["server"])
+				waitgroup.Done()
+			}(i)
 		}
+		waitgroup.Wait()
 	}
-
 	return aggserverip
 }
 
@@ -323,7 +302,8 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 
 	pipelineconfig := createPipelineConfig(intent)
 
-	status := deploylocal(pipelineconfig)
+	var dummy []string
+	status := deploylocal(pipelineconfig, dummy)
 
 	elapsed2 := time.Since(start2)
 	log.Printf("MoMo Intent took %s", elapsed2)

@@ -27,7 +27,7 @@
 
 `docker run -d -p 3000:3000 grafana/grafana`
 
-4. Go to configuration > add data source > add prometheus. Add the following HTTP URL and click save and test.
+4. Navigate to  http://10.66.2.142:3000. Go to configuration > add data source > add prometheus. Add the following HTTP URL and click save and test.
 
 `http://10.66.2.142:9090`
 

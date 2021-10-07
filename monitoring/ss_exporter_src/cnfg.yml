@@ -1,0 +1,57 @@
+---
+
+#>> Mandatory
+logic:
+    metrics:
+        histograms:
+            active: True
+            latency: 
+                active: True 
+                bucket_bounds: # ms
+                            - .10
+                            - .50
+                            - 1.00
+                            - 5.00
+                            - 10.00
+                            - 50.00
+                            - 100.00
+                            - 200.00
+                            - 500.00
+        gauges:
+            active: True
+            rtt:
+                active: True 
+            cwnd:
+                active: True 
+            delivery_rate:
+                active: True 
+        counters:
+            active: True
+            data_segs_in:
+                active: True
+            data_segs_out:
+                active: True
+    compression:
+        label_folding:
+            origin: "pid_condensed"
+            # Shape Outline:
+            # raw_endpoint: flow="(SRC#192.168.10.58|39366)(DST#104.19.199.151|443)" 
+            # pid_condensed: flow="(20005)(DST#172.217.18.2|443)"
+    #<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # uncomment for usage 
+    # selection:
+    #     process:
+    #         pids:
+    #             - 200
+    #             - 1500
+    #         cmds:
+    #             - "firefox"
+    #     stack:
+    #         peers: 
+    #           addresses:
+    #             - "8.8.4.4"
+    #           hosts:
+    #             - "some.de"
+    #         portranges:
+    #             - lower: 2000 
+    #               upper: 10000

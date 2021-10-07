@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: prometheus-ss-exporter
+Version: 1.0.0
+Summary: prometheus socket statistics exporter
+Home-page: https://github.com/cherusk/prometheus_ss_exporter
+Author: Matthias Tafelmeier
+Author-email: matthias.tafelmeier@gmx.net
+License: MIT
+Keywords: monitoring,exporter,prometheus,linux,socket statistics,kernel statistics,network stack,ss2
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >3.5.2
+License-File: LICENSE
+
+UNKNOWN
+

@@ -46,9 +46,9 @@ func ResetServer() {
 
 }
 
-//StartFedCli sends a http POST reuest to fedcli docker to startfed clients
-func StartFedCli(fedcliaddr string, numclipernode string, source string, model string, server string) {
-
+//StartFedCli sends a http POST request to fedcli docker to startfed clients
+func StartFedCli(fedcliaddr string, source string, model string, server string) {
+	numclipernode := "1"
 	//e.g curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=mnist -d model=simple -d server=localhost
 
 	data := url.Values{
@@ -59,7 +59,7 @@ func StartFedCli(fedcliaddr string, numclipernode string, source string, model s
 	}
 	resp, err := http.PostForm("http://"+fedcliaddr+flaskport+"/cli", data)
 
-	log.Printf("Sent :\n%v\n", data)
+	log.Printf("Sent %v to client %v\n", data, fedcliaddr)
 
 	if err != nil {
 		log.Fatal(err)
