@@ -25,31 +25,23 @@ onos> `app activate org.onosproject.fwd`
 
 
 ## Usage
-1. Clone this repo (hierFL branch). Start ONOS (see above).
+1. Clone this repo (evaluation branch). Start ONOS (see above).
 
-2. Copy the mininet/newfed_latest.py to containernet/examples directory
+2. Copy the mininet/cli50.py to containernet/examples directory
 
 3. `cd containernet`
 
-	`sudo python3 examples/newfed_latest.py <num_satellite_edges> <num_fwa_edges> <num_metro_edges> <num_FL_nodes_per_edge>` 
+	`sudo python3 examples/cli50.py <num of cohorts>` 
 
-	`sudo python3 examples/newfed_latest.py 2 2 2 2`
+	`sudo python3 examples/cli50.py 5`
 
-4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note that Number of FLclients per edge is set to zero. Agg will be done.
+4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note the cohortdistr or intentdistr variables in the file before sending intent
 `cd intents`
 
-`python3 sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_FL_node> <mlfostatus> <flstatus> <hierflstatus>` 
+`python3 sendintent.py`
 
-`python3 sendintent.py 6 2 1 enabled disabled disabled`
-
-Note that total number of intents send over one Mo-Mo pair will be <num_FL_nodes_per_edge> x <number_of_FL_clients_per_FL_node> (2*1)
-
-5. To send hybrid 50/50 intent:
-
-`python3 hybrid_sendintent.py <total number of edges(sat+fwa+met)> <num_FL_nodes_per_edge> <number of FL_clients_per_FL_node> ` 
-
-`python3 hybrid_sendintent.py 12 10 10`
-
+5. Open grafana dashboard at:
+`http://10.66.2.142:3000/d/ouQy_xDnk/daszweite`
 
 ## Build docker and push to remote 
 `sudo bash docker/build.sh`

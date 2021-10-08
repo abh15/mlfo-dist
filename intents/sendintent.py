@@ -5,9 +5,9 @@ import time
 
 # IP range 10.0.1.10 to 10.0.1.59
 
-timegap=5
-cohortdistr = [10]
-intentdist=['intent.yaml']#, 'intent.yaml', 'intent.yaml', 'intent.yaml', 'intent.yaml']
+timegap=15
+cohortdistr = [10,10,10,10,10]
+intentdist=['intent.yaml', 'intent.yaml', 'intent.yaml', 'intent.yaml', 'intent.yaml']
 
 def send(intentfile, ipstart, cohortsize):
     files = {'file': open(intentfile, 'rb')}

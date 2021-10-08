@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 """
 Script to simulate LEO satellite STATIC topo for a industrial edge with 50 clients.
-Max number of cohorts is 25 with 5 clients per cohort. So we need same number of agg servers
-Argument 1 provides num of cohorts = num agg servers
-""" 
+sudo python cli50.py <num of agg servers(which should be same as num of cohorts)>
+"""
 
 import sys
 from mininet.net import Containernet
@@ -22,40 +21,40 @@ info('*** Adding docker containers\n')
 
 numcohorts = int(sys.argv[1])
 aggsw = net.addSwitch("aggsw0",cls=OVSSwitch,protocols="OpenFlow13")
-satsw = net.addSwitch("satsw0",cls=OVSSwitch,protocols="OpenFlow13") 
-prom = net.addDocker('prom.0', volumes=["/home/abhishek/prometheus.yml:/etc/prometheus/prometheus.yml"], ip='10.0.0.100', dimage="prom/prometheus-linux-amd64:main",ports=[9090], port_bindings={9090:9090}, publish_all_ports=True) 
+satsw = net.addSwitch("satsw0",cls=OVSSwitch,protocols="OpenFlow13")
+prom = net.addDocker('prom.0', volumes=["/home/abhishek/prometheus.yml:/etc/prometheus/prometheus.yml"], ip='10.0.0.100', dimage="prom/prometheus-linux-amd64:main",ports=[9090], port_bindings={9090:9090}, publish_all_ports=True)
 prom.start()
-cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:8999}, publish_all_ports=True) 
+cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:8999}, publish_all_ports=True)
 cloud0.start()
 
 # Add federated servers
-for cohort in range (1, numcohorts+1):    
-    fedserver = net.addDocker("fed."+ str(cohort), ip='10.0.0.'+str(100+cohort), dimage="abh15/flwr:latest") 
+for cohort in range (1, numcohorts+1):
+    fedserver = net.addDocker("fed."+ str(cohort), ip='10.0.0.'+str(100+cohort), dimage="abh15/flwr:latest")
     fedserver.start()
     net.addLink(fedserver, aggsw, bw=100)
-  
-net.addLink(cloud0, aggsw, bw=100)  
+
+net.addLink(cloud0, aggsw, bw=100)
 net.addLink(prom, aggsw, bw=100)
-net.addLink(satsw, aggsw, cls=TCLink, delay="12ms", bw=100)  
+net.addLink(satsw, aggsw, cls=TCLink, delay="12ms", bw=100)
 
 #===========================================================================
 
 intentport = 8000+1
 edgesw = net.addSwitch("swEdge0",cls=OVSSwitch,protocols="OpenFlow13")
-mlfonode = net.addDocker("mo.1", ip="10.0.1.1", dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:intentport}, publish_all_ports=True) 
+mlfonode = net.addDocker("mo.1", ip="10.0.1.1", dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:intentport}, publish_all_ports=True)
 mlfonode.start()
 net.addLink(mlfonode, edgesw, bw=100)
 
 for sw in range(1, 6):
     campsw = net.addSwitch("swCampus"+str(sw),cls=OVSSwitch,protocols="OpenFlow13")
     for fcli in range(0,10):
-        fclient = net.addDocker("fc."+ str(sw)+ str(fcli), ip="10.0.1." + str(sw)+ str(fcli), dimage="abh15/flwr:latest") 
+        fclient = net.addDocker("fc."+ str(sw)+ str(fcli), ip="10.0.1." + str(sw)+ str(fcli), dimage="abh15/flwr:latest")
         fclient.start()
-        net.addLink(fclient, campsw, bw=100) 
-    net.addLink(campsw, edgesw, bw=100) 
+        net.addLink(fclient, campsw, bw=100)
+    net.addLink(campsw, edgesw, bw=100)
 
 net.addLink(edgesw, satsw, cls=TCLink, delay="12ms", bw=100)
- 
+
 
 info('*** Starting network\n')
 net.start()
