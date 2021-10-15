@@ -51,8 +51,8 @@ func main() {
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	go func() {
 		sig := <-gracefulStop
-		fmt.Printf("caught sig: %+v", sig)
-		sbi.ResetServer()
+		fmt.Printf("caught manual interrupt from user: %+v", sig)
+		//sbi.ResetServer()
 		// fmt.Println("Wait for 2 second to finish server deletion")
 		// time.Sleep(2 * time.Second)
 		os.Exit(0)
@@ -88,6 +88,13 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 	yamlfile, _, err := r.FormFile("file")
 	ipstart, _ := strconv.Atoi(r.FormValue("ipstart"))
 	cohortsize, _ := strconv.Atoi(r.FormValue("cohortsize"))
+	sameserver := r.FormValue("sameserver")
+	avgalgo := r.FormValue("avgalgo")
+	fracfit := r.FormValue("fracfit")
+	minfit := r.FormValue("minfit")
+	minav := r.FormValue("minav")
+	numround := r.FormValue("numround")
+
 	//nodehostname, err := os.Hostname()
 	if err != nil {
 		log.Println(err.Error())
@@ -125,7 +132,7 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 		for _, target := range intent.Targets {
 			if target.Constraints.Privacylevel == "high" {
 				//Step 3.2: Generate Mo-Mo intent based on the user input intent.
-				outgoingIntents = generateIntents(pipelineconfig)
+				outgoingIntents = generateIntents(pipelineconfig, avgalgo, fracfit, minfit, minav, numround, sameserver)
 			}
 		}
 
@@ -154,16 +161,23 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 	var pipeline = make(map[string]string)
 
 	for _, target := range in.Targets {
-		//Logic: Welding accuracy can be improved by using 'mnist' data set with 'simple' model and applying it to robot controller
+		//Logic: Welding accuracy can be improved by using 'handmnist' data set with 'complex' model and applying it to robot controller
 		if target.Operation == "maximise" && target.Operand == "robots.welding.accuracy" {
 
-			pipeline["source"] = "mnist"
-			pipeline["model"] = "simple"
+			pipeline["source"] = "handmnist"
+			pipeline["model"] = "complex"
 			pipeline["sink"] = "robot.controller"
 		}
 
-		//Logic: Drilling accuracy can be improved by using 'cifar' data set with 'mobilenet' model and applying it to robot controller
+		//Logic: Drilling accuracy can be improved by using 'fashionmnist' data set with 'complex' model and applying it to robot controller
 		if target.Operation == "maximise" && target.Operand == "robots.drilling.accuracy" {
+
+			pipeline["source"] = "fashionmnist"
+			pipeline["model"] = "complex"
+			pipeline["sink"] = "robot.controller"
+		}
+		//Logic: Drilling accuracy can be improved by using 'fashionmnist' data set with 'complex' model and applying it to robot controller
+		if target.Operation == "maximise" && target.Operand == "robots.cutting.accuracy" {
 
 			pipeline["source"] = "cifar"
 			pipeline["model"] = "mobilenet"
@@ -173,6 +187,12 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 		if target.Operation == "aggregate.global" && target.Operand == "model.federated" {
 			pipeline["source"] = target.Constraints.Sourcekind
 			pipeline["model"] = target.Constraints.Modelkind
+			pipeline["avgalgo"] = target.Constraints.Avgalgo
+			pipeline["fracfit"] = target.Constraints.Fracfit
+			pipeline["minfit"] = target.Constraints.Minfit
+			pipeline["minav"] = target.Constraints.Minav
+			pipeline["numround"] = target.Constraints.Numround
+			pipeline["sameserver"] = target.Constraints.Sameserv
 		}
 	}
 
@@ -182,7 +202,7 @@ func createPipelineConfig(in parser.Intent) map[string]string {
 //Step 3:
 //generateIntents resolves intents for higher level MLFOs. If mlfo is enabled it will generate only one intent.
 //If disabled it will generate intents equal to total number of FL clients
-func generateIntents(pipelineconfig map[string]string) []parser.Intent {
+func generateIntents(pipelineconfig map[string]string, avgalgo string, fracfit string, minfit string, minav string, numround string, sameserver string) []parser.Intent {
 
 	var fedintent parser.Intent
 	var fedtarget parser.Target
@@ -194,9 +214,15 @@ func generateIntents(pipelineconfig map[string]string) []parser.Intent {
 	fedtarget.Operand = "model.federated"
 	fedtarget.Constraints.Modelkind = pipelineconfig["model"]
 	fedtarget.Constraints.Sourcekind = pipelineconfig["source"]
+	fedtarget.Constraints.Avgalgo = avgalgo
+	fedtarget.Constraints.Fracfit = fracfit
+	fedtarget.Constraints.Minfit = minfit
+	fedtarget.Constraints.Minav = minav
+	fedtarget.Constraints.Numround = numround
+	fedtarget.Constraints.Sameserv = sameserver
+
 	fedtargetList = append(fedtargetList, fedtarget)
 	fedintent.Targets = fedtargetList
-
 	fedintent.IntentID = "fedintent-000"
 	genIntents = append(genIntents, fedintent)
 
@@ -208,6 +234,7 @@ func generateIntents(pipelineconfig map[string]string) []parser.Intent {
 func sendIntents(outIntents []parser.Intent) string {
 	var waitgroup sync.WaitGroup
 	var reply string
+	log.Printf("gnerateIntents intent is ----------------------------->%+v\n", outIntents[0])
 	//Convert intent struc to pb intent struc
 	if len(outIntents) != 0 {
 		waitgroup.Add(len(outIntents))
@@ -258,10 +285,18 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 		// 	}
 		// 	aggserverip = "10.0.0.102" + flowerport
 		// }
-		fedservoctet = fedservoctet + 1
-		fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
-		sbi.StartFedServ(fedservip)
-		aggserverip = fedservip + flowerport
+
+		//If it does not use same server continue normal operation
+		//else use the same server as previous, do not increment and do not send sbi msg. Return the old aggservip
+		if pipeline["sameserver"] == "no" {
+			fedservoctet = fedservoctet + 1
+			fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
+			sbi.StartFedServ(fedservip, pipeline["avgalgo"], pipeline["fracfit"], pipeline["minfit"], pipeline["minav"], pipeline["numround"])
+			aggserverip = fedservip + flowerport
+		} else {
+			fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
+			aggserverip = fedservip + flowerport
+		}
 		mutex.Unlock()
 	}
 
@@ -273,7 +308,7 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 		waitgroup.Add(numclipercohort)
 		for i := 0; i < numclipercohort; i++ {
 			go func(i int) {
-				sbi.StartFedCli(addrlist[i], pipeline["source"], pipeline["model"], pipeline["server"])
+				sbi.StartFedCli(addrlist[i], pipeline["source"], pipeline["model"], pipeline["server"], numclipercohort, i+1)
 				waitgroup.Done()
 			}(i)
 		}
@@ -303,6 +338,7 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 	pipelineconfig := createPipelineConfig(intent)
 
 	var dummy []string
+
 	status := deploylocal(pipelineconfig, dummy)
 
 	elapsed2 := time.Since(start2)

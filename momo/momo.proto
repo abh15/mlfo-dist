@@ -29,10 +29,15 @@ message Target{
 
 message Constraints {
    string privacylevel = 1;
-   string latency = 2;
-   string sourcekind = 3;
-   string modelkind = 4;
-   int32 minaccuracy = 5;
+   string sourcekind = 2;
+   string modelkind = 3;
+   string fracfit = 4;
+   string minfit = 5;
+   string minav = 6;
+   string numround = 7;
+   string sameserv = 8;
+   string avgalgo =9;
+  
 }
 
 message Status {

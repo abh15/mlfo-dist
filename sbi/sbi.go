@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -47,15 +48,17 @@ func ResetServer() {
 }
 
 //StartFedCli sends a http POST request to fedcli docker to startfed clients
-func StartFedCli(fedcliaddr string, source string, model string, server string) {
-	numclipernode := "1"
+func StartFedCli(fedcliaddr string, source string, model string, server string, numclipercohort int, partitionnum int) {
+	cohsize := strconv.Itoa(numclipercohort)
+	part := strconv.Itoa(partitionnum)
 	//e.g curl -X POST 'http://10.0.1.100:5000/cli' -d num=2 -d source=mnist -d model=simple -d server=localhost
 
 	data := url.Values{
-		"num":    {numclipernode},
-		"source": {source},
-		"model":  {model},
-		"server": {server},
+		"source":  {source},
+		"model":   {model},
+		"server":  {server},
+		"cohsize": {cohsize},
+		"part":    {part},
 	}
 	resp, err := http.PostForm("http://"+fedcliaddr+flaskport+"/cli", data)
 
@@ -68,8 +71,14 @@ func StartFedCli(fedcliaddr string, source string, model string, server string) 
 
 }
 
-func StartFedServ(fedservaddr string) {
-	data := url.Values{}
+func StartFedServ(fedservaddr string, algo string, fracfit string, minfit string, minav string, numround string) {
+	data := url.Values{
+		"algo":     {algo},
+		"fracfit":  {fracfit},
+		"minfit":   {minfit},
+		"minav":    {minav},
+		"numround": {numround},
+	}
 	resp, err := http.PostForm("http://"+fedservaddr+flaskport+"/serv", data)
 
 	if err != nil {

@@ -55,6 +55,7 @@ onos> `app activate org.onosproject.fwd`
 
 ## Misc commands
 ### Compile protoc
+Everytime the intent structure is changed we need to regenerate the proto files	
 
 `protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative momo/momo.proto`
 

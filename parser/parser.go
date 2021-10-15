@@ -24,10 +24,14 @@ type Target struct {
 //Constraints describes constraints for the action
 type Constraints struct {
 	Privacylevel string `yaml:"privacylevel"`
-	Latency      string `yaml:"latency"`
 	Sourcekind   string `yaml:"sourcekind"`
 	Modelkind    string `yaml:"modelkind"`
-	Minaccuracy  int32  `yaml:"minaccuracy"`
+	Avgalgo      string `yaml:"avgalgo"`
+	Fracfit      string `yaml:"fracfit"`
+	Minfit       string `yaml:"minfit"`
+	Minav        string `yaml:"minav"`
+	Numround     string `yaml:"numround"`
+	Sameserv     string `yaml:"sameserv"`
 }
 
 //Parse parses the input yaml file into the Intent{} struct
