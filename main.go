@@ -288,7 +288,11 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 
 		//If it does not use same server continue normal operation
 		//else use the same server as previous, do not increment and do not send sbi msg. Return the old aggservip
-		if pipeline["sameserver"] == "no" {
+		if strings.Contains(pipeline["sameserver"], "no") {
+			//for reset
+			if pipeline["sameserver"] == "nor" {
+				fedservoctet = 100
+			}
 			fedservoctet = fedservoctet + 1
 			fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
 			sbi.StartFedServ(fedservip, pipeline["avgalgo"], pipeline["fracfit"], pipeline["minfit"], pipeline["minav"], pipeline["numround"])
