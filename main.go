@@ -312,7 +312,7 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 		waitgroup.Add(numclipercohort)
 		for i := 0; i < numclipercohort; i++ {
 			go func(i int) {
-				sbi.StartFedCli(addrlist[i], pipeline["source"], pipeline["model"], pipeline["server"], numclipercohort, i+1)
+				sbi.StartFedCli(addrlist[i], pipeline["source"], pipeline["model"], pipeline["server"], numclipercohort, i) //Might need to change to just i
 				waitgroup.Done()
 			}(i)
 		}

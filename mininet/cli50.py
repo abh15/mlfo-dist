@@ -26,6 +26,8 @@ prom = net.addDocker('prom.0', volumes=["/home/abhishek/prometheus.yml:/etc/prom
 prom.start()
 cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:8999}, publish_all_ports=True)
 cloud0.start()
+bgtserver = net.addDocker('appserv.0', ip='10.0.0.2', dimage="abh15/mlfo:latest")
+bgtserver.start()
 
 # Add federated servers
 for cohort in range (1, numcohorts+1):
@@ -35,6 +37,7 @@ for cohort in range (1, numcohorts+1):
 
 net.addLink(cloud0, aggsw, bw=100)
 net.addLink(prom, aggsw, bw=100)
+net.addLink(bgtserver, aggsw, bw=100)
 net.addLink(satsw, aggsw, cls=TCLink, delay="12ms", bw=100)
 
 #===========================================================================
@@ -43,7 +46,12 @@ intentport = 8000+1
 edgesw = net.addSwitch("swEdge0",cls=OVSSwitch,protocols="OpenFlow13")
 mlfonode = net.addDocker("mo.1", ip="10.0.1.1", dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:intentport}, publish_all_ports=True)
 mlfonode.start()
+bgtapp1 = net.addDocker("app.1", ip="10.0.1.2", dimage="abh15/mlfo:latest")
+bgtapp1.start()
+
+
 net.addLink(mlfonode, edgesw, bw=100)
+net.addLink(bgtapp1, edgesw, bw=100)
 
 for sw in range(1, 6):
     campsw = net.addSwitch("swCampus"+str(sw),cls=OVSSwitch,protocols="OpenFlow13")
