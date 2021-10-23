@@ -22,14 +22,25 @@ timegap=1
 # minavdist= ['1','1','1','1','1']
 # numrounddist =['20','20','20','20','20']
 
-cohortdistr = [6,6,6,6,6,6,6,6]
-intentdist=['intent.yaml','2intent.yaml','intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml']
-sameserverdist= ['nor','no','no','no','no','no','no','no']
-avgalgodist=['FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg']
-fracfitdist= ['0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5']
-minfitdist=['1','1','1','1','1','1','1','1']
-minavdist= ['1','1','1','1','1','1','1','1']
-numrounddist =['20','20','20','20','20','20','20','20']
+cohortdistr = [4,4,4,4,4,4,4,4,4,4,4,4]
+intentdist=['intent.yaml','2intent.yaml','intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml','intent.yaml', '2intent.yaml','intent.yaml', '2intent.yaml']
+sameserverdist= ['nor','no','no','no','no','no','no','no','no','no','no','no']
+avgalgodist=['FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg']
+fracfitdist= ['0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5']
+minfitdist=['1','1','1','1','1','1','1','1','1','1','1','1']
+minavdist= ['1','1','1','1','1','1','1','1','1','1','1','1']
+numrounddist =['20','20','20','20','20','20','20','20','20','20','20','20']
+
+
+# cohortdistr = [6,6,6,6,6,6,6,6]
+# intentdist=['intent.yaml','2intent.yaml','intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml','intent.yaml', '2intent.yaml']
+# sameserverdist= ['nor','no','no','no','no','no','no','no']
+# avgalgodist=['FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg','FedAvg']
+# fracfitdist= ['0.5','0.5','0.5','0.5','0.5','0.5','0.5','0.5']
+# minfitdist=['1','1','1','1','1','1','1','1']
+# minavdist= ['1','1','1','1','1','1','1','1']
+# numrounddist =['20','20','20','20','20','20','20','20']
+
 
 # cohortdistr = [50]
 # intentdist=['intent.yaml']
@@ -39,6 +50,7 @@ numrounddist =['20','20','20','20','20','20','20','20']
 # minfitdist=['1']
 # minavdist= ['1']
 # numrounddist =['20']
+
 
 
 def send(intentfile, ipstart, cohortsize, sameserver, avgalgo, fracfit, minfit, minav, numround):
