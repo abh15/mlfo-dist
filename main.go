@@ -18,11 +18,13 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
+
+	//"os/signal"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
+
+	//"syscall"
 	"time"
 
 	pb "github.com/abh15/mlfo-dist/momo"
@@ -44,39 +46,71 @@ var mutex = &sync.Mutex{}
 var fedservoctet int = 100
 
 func main() {
-	fedservoctet = 100
-	//If our server crashes delete files which indicate created fed servers
-	var gracefulStop = make(chan os.Signal)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
-	go func() {
-		sig := <-gracefulStop
-		fmt.Printf("caught manual interrupt from user: %+v", sig)
-		//sbi.ResetServer()
-		// fmt.Println("Wait for 2 second to finish server deletion")
-		// time.Sleep(2 * time.Second)
-		os.Exit(0)
-	}()
+	// fedservoctet = 100
+	// //If our server crashes delete files which indicate created fed servers
+	// var gracefulStop = make(chan os.Signal)
+	// signal.Notify(gracefulStop, syscall.SIGTERM)
+	// signal.Notify(gracefulStop, syscall.SIGINT)
+	// go func() {
+	// 	sig := <-gracefulStop
+	// 	fmt.Printf("caught manual interrupt from user: %+v", sig)
+	// 	//sbi.ResetServer()
+	// 	// fmt.Println("Wait for 2 second to finish server deletion")
+	// 	// time.Sleep(2 * time.Second)
+	// 	os.Exit(0)
+	// }()
 
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	// log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
-	//Start grpc server for momo on port 9000 in different thread
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
+	// //Start grpc server for momo on port 9000 in different thread
+	// wg := new(sync.WaitGroup)
+	// wg.Add(1)
+	// go func() {
+	// 	StartServer(mlfoport)
+	// 	wg.Done()
+	// }()
+
+	// //Start REST server for intent  on port 8000
+	// log.Println("Started REST server on " + intentport)
+	// http.HandleFunc("/receive", httpReceiveHandler)       // Handle the incoming intent
+	// http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
+	// log.Fatal(http.ListenAndServe(intentport, nil))
+
+	// wg.Wait()
+	nodehostname, err := os.Hostname()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	if strings.Contains(nodehostname, "fm") {
+		time.Sleep(90 * time.Second)
+		var fedintent parser.Intent
+		var fedtarget parser.Target
+		var fedtargetList []parser.Target
+		var genIntents []parser.Intent
+
+		fedtarget.ID = "cloud0-001"
+		fedtarget.Operation = "aggregate.global"
+		fedtarget.Operand = "model.federated"
+		fedtarget.Constraints.Modelkind = "model"
+		fedtarget.Constraints.Sourcekind = "source"
+		fedtarget.Constraints.Avgalgo = "FedAvg"
+		fedtarget.Constraints.Fracfit = "0.5"
+		fedtarget.Constraints.Minfit = "1"
+		fedtarget.Constraints.Minav = "1"
+		fedtarget.Constraints.Numround = "20"
+		fedtarget.Constraints.Sameserv = "no"
+
+		fedtargetList = append(fedtargetList, fedtarget)
+		fedintent.Targets = fedtargetList
+		fedintent.IntentID = "fedintent-000"
+		genIntents = append(genIntents, fedintent)
+
+		_ = sendIntents(genIntents)
+
+	} else {
 		StartServer(mlfoport)
-		wg.Done()
-	}()
-
-	//Start REST server for intent  on port 8000
-	log.Println("Started REST server on " + intentport)
-	http.HandleFunc("/receive", httpReceiveHandler)       // Handle the incoming intent
-	http.HandleFunc("/cloudreset", httpCloudResetHandler) // Handle the incoming reset msg
-	log.Fatal(http.ListenAndServe(intentport, nil))
-
-	wg.Wait()
+	}
 }
-
 func httpCloudResetHandler(w http.ResponseWriter, r *http.Request) {
 	sbi.ResetServer()
 }
@@ -323,32 +357,35 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 
 //Deploy is called when a Mo-Mo message is received on MLFO server
 func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status, error) {
-	start2 := time.Now()
+	// start2 := time.Now()
 
-	var intent parser.Intent
-	intentbytes, err := json.Marshal(rcvdIntent)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	json.Unmarshal(intentbytes, &intent)
-	log.Printf("Received the following intent\n%v\n", intent)
+	// var intent parser.Intent
+	// intentbytes, err := json.Marshal(rcvdIntent)
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// }
+	// json.Unmarshal(intentbytes, &intent)
+	// log.Printf("Received the following intent\n%v\n", intent)
 
-	/*
-		Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
-		Step 2: Deploy fed agg pipelines
-		Step 3: Send fed agg server reply back to client
-	*/
+	// /*
+	// 	Step 1: Receive intent over http(:8000) OR over Mo-Mo(:9000)
+	// 	Step 2: Deploy fed agg pipelines
+	// 	Step 3: Send fed agg server reply back to client
+	// */
 
-	pipelineconfig := createPipelineConfig(intent)
+	// pipelineconfig := createPipelineConfig(intent)
 
-	var dummy []string
+	// var dummy []string
 
-	status := deploylocal(pipelineconfig, dummy)
+	// status := deploylocal(pipelineconfig, dummy)
 
-	elapsed2 := time.Since(start2)
-	log.Printf("MoMo Intent took %s", elapsed2)
-	reply := status
-	return &pb.Status{Status: reply}, nil
+	// elapsed2 := time.Since(start2)
+	// log.Printf("MoMo Intent took %s", elapsed2)
+	// reply := status
+	// return &pb.Status{Status: reply}, nil
+
+	_ = rcvdIntent
+	return &pb.Status{Status: "0.0.0.0"}, nil
 }
 
 //server is used to implement pb.UnimplementedOrchestrateServer
