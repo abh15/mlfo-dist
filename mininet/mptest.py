@@ -24,7 +24,7 @@ aggsw = net.addSwitch("aggsw0",cls=OVSSwitch,protocols="OpenFlow13")
 satsw = net.addSwitch("satsw0",cls=OVSSwitch,protocols="OpenFlow13")
 prom = net.addDocker('prom.0', volumes=["/home/abhishek/prometheus.yml:/etc/prometheus/prometheus.yml"], ip='10.0.0.100', dimage="prom/prometheus-linux-amd64:main",ports=[9090], port_bindings={9090:9090}, publish_all_ports=True)
 prom.start()
-cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:latest",ports=[8000], port_bindings={8000:8999}, publish_all_ports=True)
+cloud0 = net.addDocker('cloud.0', ip='10.0.0.1', dimage="abh15/mlfo:mptest1")#,ports=[8000], port_bindings={8000:8999}, publish_all_ports=True)
 cloud0.start()
 bgtserver = net.addDocker('appserv.0', ip='10.0.0.2', dimage="abh15/mlfo:latest")
 bgtserver.start()
@@ -42,7 +42,6 @@ net.addLink(bgtserver, aggsw, bw=100)
 net.addLink(satsw, aggsw, cls=TCLink, delay="12ms", bw=100)
 
 #===========================================================================
-
 intentport = 8000+1
 edgesw = net.addSwitch("swEdge0",cls=OVSSwitch,protocols="OpenFlow13")
 mlfonode = net.addDocker("mo.1", ip="10.0.1.1", dimage="abh15/mlfo:latest", ports=[8000], port_bindings={8000:intentport}, publish_all_ports=True)
