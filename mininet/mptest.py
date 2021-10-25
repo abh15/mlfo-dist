@@ -36,6 +36,7 @@ for cohort in range (1, numcohorts+1):
     net.addLink(fedserver, aggsw, bw=100)
 
 net.addLink(cloud0, aggsw, bw=100)
+
 net.addLink(prom, aggsw, bw=100)
 net.addLink(bgtserver, aggsw, bw=100)
 net.addLink(satsw, aggsw, cls=TCLink, delay="12ms", bw=100)
@@ -56,7 +57,7 @@ net.addLink(bgtapp1, edgesw, bw=100)
 for sw in range(1, 6):
     campsw = net.addSwitch("swCampus"+str(sw),cls=OVSSwitch,protocols="OpenFlow13")
     for fcli in range(0,10):
-        fclient = net.addDocker("fc."+ str(sw)+ str(fcli), ip="10.0.1." + str(sw)+ str(fcli), dimage="abh15/flwr:latest")
+        fclient = net.addDocker("fm."+ str(sw)+ str(fcli), ip="10.0.1." + str(sw)+ str(fcli), dimage="abh15/mlfo:mptest1")
         fclient.start()
         net.addLink(fclient, campsw, bw=100)
     net.addLink(campsw, edgesw, bw=100)
