@@ -100,3 +100,21 @@ sudo docker exec -it mn.cloud.0 iperf -s
 sudo docker exec -it mn.smo.1 /bin/bash
 
 iperf -c 10.0.0.1 -p 5001 -t 5
+
+### How to run the experiment
+
+1. Run ONOS 
+
+2. Go to containernet dir and run dp100m(for 100Mb BW) or dp500m(for 500Mb BW).
+`sudo python dp100m.py`
+
+3. Open another terminal and run the following in the containernet folder.
+`bash <cohortnum>init.sh` for setting server cpu limit and checking ping connectivity
+`bash updateclicpu.sh` for updating fed client cpus
+
+3.1 If ping fails, try pinging manually
+`docker exec -it mn.cloud.0 ping -c 2 10.0.0.108`
+
+4. From another machine run sendintent.py. Check if correct intent and distribution is used beforehand 
+
+5. To run management plane experiment run mptest. This will automatically send intents from all 50 mlfos to the central mlfo without any trigger. You need to run mpinit.sh to limit the cpus
