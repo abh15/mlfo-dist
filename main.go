@@ -82,7 +82,7 @@ func main() {
 		log.Println(err.Error())
 	}
 	if strings.Contains(nodehostname, "fm") {
-		time.Sleep(90 * time.Second)
+		time.Sleep(180 * time.Second)
 		var fedintent parser.Intent
 		var fedtarget parser.Target
 		var fedtargetList []parser.Target
