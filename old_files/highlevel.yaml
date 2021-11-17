@@ -1,0 +1,12 @@
+intentID: myintent01  
+targets:
+    - id: mlfo.cloud.azure01
+      operation: maximise
+      operand: roboticarm01.accuracy
+      constraints:
+        arm.accuracy: 90%
+        dataprivacy: high
+
+        
+
+

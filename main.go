@@ -41,10 +41,9 @@ const (
 
 //Global Variable
 var mutex = &sync.Mutex{}
-var fedservoctet int = 100
+var fedservoctet int = 11
 
 func main() {
-	fedservoctet = 100
 	//If our server crashes delete files which indicate created fed servers
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
@@ -150,6 +149,8 @@ func httpReceiveHandler(w http.ResponseWriter, r *http.Request) {
 
 		elapsed := time.Since(start)
 		log.Printf("HTTP Intent took %s", elapsed)
+		f, _ := os.Create("/app/node_exporter/" + elapsed.String())
+		f.Close()
 
 		wg2.Done()
 	}()
@@ -286,21 +287,11 @@ func deploylocal(pipeline map[string]string, addrlist []string) string {
 		// 	aggserverip = "10.0.0.102" + flowerport
 		// }
 
-		//If it does not use same server continue normal operation
-		//else use the same server as previous, do not increment and do not send sbi msg. Return the old aggservip
-		if strings.Contains(pipeline["sameserver"], "no") {
-			//for reset
-			if pipeline["sameserver"] == "nor" {
-				fedservoctet = 100
-			}
-			fedservoctet = fedservoctet + 1
-			fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
-			sbi.StartFedServ(fedservip, pipeline["avgalgo"], pipeline["fracfit"], pipeline["minfit"], pipeline["minav"], pipeline["numround"])
-			aggserverip = fedservip + flowerport
-		} else {
-			fedservip = "10.0.0." + strconv.Itoa(fedservoctet)
-			aggserverip = fedservip + flowerport
-		}
+		fedservip = "10.0." + strconv.Itoa(fedservoctet) + ".100"
+		sbi.StartFedServ(fedservip, pipeline["avgalgo"], pipeline["fracfit"], pipeline["minfit"], pipeline["minav"], pipeline["numround"])
+		aggserverip = fedservip + flowerport
+		fedservoctet = fedservoctet + 1
+
 		mutex.Unlock()
 	}
 
@@ -347,6 +338,7 @@ func (s *server) Deploy(ctx context.Context, rcvdIntent *pb.Intent) (*pb.Status,
 
 	elapsed2 := time.Since(start2)
 	log.Printf("MoMo Intent took %s", elapsed2)
+
 	reply := status
 	return &pb.Status{Status: reply}, nil
 }

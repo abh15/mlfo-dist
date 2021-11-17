@@ -31,9 +31,7 @@
 
 `http://10.66.2.142:9090`
 
-5. Add the following dashboard by downloading and importing JSON file.
-
-`https://grafana.com/grafana/dashboards/193`
+5. Add the dashboard by importing *monitoring/dashboard.json* file.
 
 6. Restrict the number of CPUs on cloud MLFO to 2.
 

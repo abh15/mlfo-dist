@@ -31,9 +31,16 @@ onos> `app activate org.onosproject.fwd`
 
 3. `cd containernet`
 
-	`sudo python3 examples/cli50.py <num of cohorts>` 
+	`sudo python3 dp100m.py <num of cohorts>` 
 
-	`sudo python3 examples/cli50.py 5`
+	`sudo python3 dp100m.py.py 5`
+
+	`bash 1init.sh`
+
+	`bash pingtest.sh`
+
+	`bash updateclicpu.sh`
+
 
 4. In another terminal from the remote machine (Not the HHI system) we send intents to all MLFO nodes. Note the cohortdistr or intentdistr variables in the file before sending intent
 `cd intents`
@@ -118,3 +125,5 @@ iperf -c 10.0.0.1 -p 5001 -t 5
 4. From another machine run sendintent.py. Check if correct intent and distribution is used beforehand 
 
 5. To run management plane experiment run mptest. This will automatically send intents from all 50 mlfos to the central mlfo without any trigger. You need to run mpinit.sh to limit the cpus
+
+6. To check intent handling time, use the tlog.py (it uses mlfo:tlog for mo.1). Also use all 'nor' in sameserverdist.

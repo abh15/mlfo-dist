@@ -1,0 +1,12 @@
+intentID: myintent01  
+targets:
+    - id: mlfo.cloud.azure01
+      operation: maximise
+      operand: roboticarm01.accuracy
+      constraints:
+        model: acumos.mobilenet.v2
+        minaccuracy: 0.5
+        avgalgo: flwr.fedavgv2
+        numrounds: 1000
+
+
