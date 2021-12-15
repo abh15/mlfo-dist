@@ -1,11 +1,11 @@
 # mlfo-dist
 Distributed version of MLFO based on ITU Y.3172 standard 
+
 ## Requirements 
-Containernet v3.1
 
-<!-- go v1.14
+golang v1.14
 
-[abh15/flower](https://github.com/abh15/flower) -->
+
 
 ## Start ONOS
 

@@ -1,17 +1,12 @@
 intentID: myintent01  
 targets:
-    - id: mlfo.factory.1
+    - id: mlfo.cloud.hhi01
       operation: maximise
-      operand: roboticarm.accuracy
+      operand: roboticarm01.accuracy
       constraints:
-        src: robot.arm.xyz
         model: acumos.mobilenet.v2
         minaccuracy: 0.9
-        sink: robot.api.armcontrol
-        policy: policy.production.1
         avgalgo: flwr.fedavgv2
+        numrounds: 1000
 
 
-
-
-        

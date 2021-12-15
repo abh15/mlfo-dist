@@ -11,7 +11,7 @@ If sameserverdist is ues then that cohort shared fedavg server with the cohort b
 """
 
 #timegap in seconds is period in between two intents 
-timegap=1
+# timegap=1
 
 # cohortdistr = [10,10,10,10,10]
 # intentdist=['intent.yaml', '2intent.yaml', 'intent.yaml', '2intent.yaml', 'intent.yaml']
@@ -64,7 +64,26 @@ fracfitdist= ['0.5','0.5','0.5']
 minfitdist=['1','1','1']
 minavdist= ['1','1','1']
 numrounddist =['20','20','20']
+#======================================================================
 
+# cohortdistr = [10,10,10]
+# intentdist=['3intent.yaml', '3intent.yaml', '3intent.yaml']
+# sameserverdist= ['nor','no','no']
+# avgalgodist=['FedAvg','FedAvg','FedAvg']
+# fracfitdist= ['0.5','0.5','0.5']
+# minfitdist=['1','1','1']
+# minavdist= ['1','1','1']
+# numrounddist =['20','20','20']
+
+
+# cohortdistr = [30]
+# intentdist=['3intent.yaml']
+# sameserverdist= ['nor']
+# avgalgodist=['FedAvg']
+# fracfitdist= ['0.5']
+# minfitdist=['1']
+# minavdist= ['1']
+# numrounddist =['20']
 
 
 def send(intentfile, ipstart, cohortsize, sameserver, avgalgo, fracfit, minfit, minav, numround):

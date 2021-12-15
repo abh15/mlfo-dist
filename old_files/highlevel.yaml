@@ -1,6 +1,6 @@
 intentID: myintent01  
 targets:
-    - id: mlfo.cloud.azure01
+    - id: mlfo.factory.1
       operation: maximise
       operand: roboticarm01.accuracy
       constraints:
