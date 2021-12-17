@@ -1,8 +1,0 @@
-intentID: edgeintent03    #unique ID for every intent
-targets:
-    - id: factory.all
-      operation: maximise
-      operand: robots.cutting.accuracy
-      constraints:
-        privacylevel: high
-
